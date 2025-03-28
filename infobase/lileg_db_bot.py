@@ -7,8 +7,9 @@ from langchain_chroma import Chroma
 from langchain_community.document_loaders import PlaywrightURLLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langdetect import detect
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, Message, User
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, \
+    CallbackQueryHandler, CallbackContext
 
 from infobase.shared import CHROMA_CLIENT, EMBEDDINGS
 
@@ -79,27 +80,35 @@ def ingest_internal(effective_user_id: str, message_id: str, message_text: str, 
         "Ingesting message %s into collection %s with metadata %s",
         message_id, effective_user_id, metadata
     )
-    vector_store.delete(where={"message_id": message_id})
+    vector_store.delete(where={"$or": [{"message_id": message_id}, {"url": message_text}]})
     vector_store.add_documents(documents=texts)
 
 
+async def reply_message(message: Message, user: User):
+    keyboard_markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton("Delete", callback_data=f"delete:{message.message_id}"), ],
+    ])
+
+    await message.reply_text(
+        f'Message ({message.message_id}) was successfully ingested to the user collection ({user.id})',
+        reply_to_message_id=message.message_id,
+        reply_markup=keyboard_markup,
+    )
+
+
 async def ingest_text(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    message = (update.message or update.edited_message)
+    message = update.effective_message
 
     metadata = {
         "source": "telegram",
         "message_sent_on": str(message.date),
     }
     ingest_internal(str(update.effective_user.id), str(message.message_id), message.text, metadata)
-
-    await message.reply_text(
-        f'Message ({message.message_id}) was successfully ingested to the user collection ({update.effective_user.id})',
-        reply_to_message_id=message.message_id,
-    )
+    await reply_message(message, update.effective_user)
 
 
 async def ingest_url(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    message = (update.message or update.edited_message)
+    message = update.effective_message
 
     logger.info("Loading content from url %s", message.text)
     documents = await PlaywrightURLLoader(urls=[message.text], remove_selectors=["header", "footer"]).aload()
@@ -111,10 +120,7 @@ async def ingest_url(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         }
         ingest_internal(str(update.effective_user.id), str(message.message_id), doc.page_content, metadata)
 
-    await message.reply_text(
-        f'Url {message.text} ({message.message_id}) was successfully ingested to the user collection ({update.effective_user.id})',
-        reply_to_message_id=message.message_id,
-    )
+    await reply_message(message, update.effective_user)
 
 
 async def ingest_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -136,10 +142,29 @@ async def ingest_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         }
         ingest_internal(str(update.effective_user.id), str(message.message_id), doc.page_content, metadata)
 
-    await message.reply_text(
-        f'Document {update.message.document.file_name} ({message.message_id}) was successfully ingested to the user collection ({update.effective_user.id})',
-        reply_to_message_id=message.message_id,
+    await reply_message(message, update.effective_user)
+
+
+async def keyboard_callback(update: Update, _: CallbackContext) -> None:
+    query = update.callback_query
+
+    logger.info("Received Keyboard callback %s", query.data)
+
+    collection_name = str(update.effective_user.id)
+    vector_store = Chroma(
+        collection_name=collection_name,
+        embedding_function=EMBEDDINGS,
+        client=CHROMA_CLIENT
     )
+
+    command, message_id = query.data.split(":")
+    if command == "delete":
+        logger.info("Deleting message %s from collection %s", message_id, collection_name)
+        vector_store.delete(where={"message_id": message_id})
+        await query.answer(f"Message {message_id} deleted!")
+        await query.delete_message()
+    else:
+        await query.answer(f"Not supported!")
 
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_DB_BOT_TOKEN')
@@ -154,5 +179,6 @@ app.add_handler(
     MessageHandler(filters.TEXT & (~filters.COMMAND) & (~filters.REPLY) & (~filters.Entity("url")), ingest_text)
 )
 app.add_handler(MessageHandler(filters.Document.ALL, ingest_file))
+app.add_handler(CallbackQueryHandler(keyboard_callback))
 
 app.run_polling()
