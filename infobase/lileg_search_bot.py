@@ -1,45 +1,14 @@
 import logging.handlers
 import os
 
-import chromadb
-from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_huggingface import HuggingFaceEmbeddings
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 
-from infobase.shared import ChatOpenRouter, preview
-
-# LOGGING
-file_handler = logging.handlers.RotatingFileHandler(f".logs/{os.path.basename(__file__)}.log", backupCount=10)
-file_handler.doRollover()
-
-logging.basicConfig(
-    level=logging.INFO,
-    handlers=[file_handler, logging.StreamHandler()]
-)
+from infobase.shared import preview, EMBEDDINGS, CHROMA_CLIENT, LLM
 
 logger = logging.getLogger(__name__)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-
-# ENVIRONMENT VARIABLES
-load_dotenv()
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_SEARCH_BOT_TOKEN')
-
-# DATABASE AND EMBEDDINGS
-CHROMA_CLIENT = chromadb.PersistentClient(".chroma")
-
-EMBEDDINGS = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
-    model_kwargs={'device': 'cpu'},
-    encode_kwargs={'normalize_embeddings': False}
-)
-
-llm = ChatOpenRouter(
-    model="deepseek/deepseek-chat-v3-0324:free",
-    temperature=0.7
-)
 
 
 async def welcome(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -105,11 +74,12 @@ Answer:
     messages = prompt.invoke({"question": message.text, "context": document_context})
 
     logger.info("Executing llm prompt for query %s with template %s", prompt_template, preview(message.text))
-    response = llm.invoke(messages)
+    response = LLM.invoke(messages)
 
     await message.reply_markdown(response.content, reply_to_message_id=message.message_id)
 
 
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_SEARCH_BOT_TOKEN')
 app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", welcome))

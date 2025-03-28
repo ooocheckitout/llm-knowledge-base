@@ -3,40 +3,16 @@ import os
 from datetime import datetime, UTC
 from pathlib import Path
 
-import chromadb
-from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PlaywrightURLLoader, PyPDFLoader
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langdetect import detect
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 
-# LOGGING
-file_handler = logging.handlers.RotatingFileHandler(f".logs/{os.path.basename(__file__)}.log", backupCount=10)
-file_handler.doRollover()
-
-logging.basicConfig(
-    level=logging.INFO,
-    handlers=[file_handler, logging.StreamHandler()]
-)
+from infobase.shared import CHROMA_CLIENT, EMBEDDINGS
 
 logger = logging.getLogger(__name__)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-
-# ENVIRONMENT VARIABLES
-load_dotenv()
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_DB_BOT_TOKEN')
-
-# DATABASE AND EMBEDDINGS
-CHROMA_CLIENT = chromadb.PersistentClient(".chroma")
-
-EMBEDDINGS = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
-    model_kwargs={'device': 'cpu'},
-    encode_kwargs={'normalize_embeddings': False}
-)
 
 
 def preview(text: str):
@@ -166,6 +142,7 @@ async def ingest_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     )
 
 
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_DB_BOT_TOKEN')
 app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", welcome))
