@@ -1,4 +1,9 @@
-https://github.com/github/gitignore/blob/main/Python.gitignore
+**/.logs/*
+**/.documents/*
+**/.chroma/*
+playground/
+
+# https://github.com/github/gitignore/blob/main/Python.gitignore
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
