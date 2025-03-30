@@ -2,7 +2,7 @@ import logging.handlers
 import os
 from typing import Optional
 
-import chromadb
+from pathlib import Path
 from dotenv import load_dotenv
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
@@ -22,7 +22,10 @@ def preview(text: str):
     return text[0:100].replace("\n", " ")
 
 
-file_handler = logging.handlers.RotatingFileHandler(f".logs/{os.path.basename(__file__)}.log", backupCount=10)
+local_logs_path = Path(".logs") / f"{os.path.basename(__file__)}.log"
+local_logs_path.parent.mkdir(parents=True, exist_ok=True)
+
+file_handler = logging.handlers.RotatingFileHandler(local_logs_path, backupCount=10)
 file_handler.doRollover()
 
 logging.basicConfig(
@@ -31,7 +34,6 @@ logging.basicConfig(
 )
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
-
 
 load_dotenv()
 

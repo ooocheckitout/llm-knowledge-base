@@ -1,5 +1,8 @@
 import shutil
 import hashlib
+
+import telegram.ext.filters
+from telegram.ext.filters import MessageFilter
 from langchain.docstore.document import Document
 import logging.handlers
 import os
@@ -15,7 +18,6 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, Message
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, \
     CallbackQueryHandler, CallbackContext
 
-from infobase.lileg_db_analytics import vector_store
 from infobase.shared import CHROMA_CLIENT_DIR, EMBEDDINGS, DEBUG_USER_ID
 
 logger = logging.getLogger(__name__)
@@ -212,17 +214,20 @@ async def keyboard_callback(update: Update, _: CallbackContext) -> None:
         await query.answer(f"Not supported!")
 
 
+class EnsureSingleEntity(filters.Entity):
+    def filter(self, message: Message) -> bool:
+        logger.info(message.entities)
+
+        return message.entities and all(entity.type == self.entity_type for entity in message.entities)
+
+
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_DB_BOT_TOKEN')
 app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", welcome))
 app.add_handler(CommandHandler("clear", clear))
-app.add_handler(
-    MessageHandler(filters.TEXT & (~filters.COMMAND) & (~filters.REPLY) & filters.Entity("url"), ingest_url)
-)
-app.add_handler(
-    MessageHandler(filters.TEXT & (~filters.COMMAND) & (~filters.REPLY) & (~filters.Entity("url")), ingest_text)
-)
+app.add_handler(MessageHandler(EnsureSingleEntity("url"), ingest_url))
+app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), ingest_text))
 app.add_handler(MessageHandler(filters.Document.ALL, ingest_file))
 app.add_handler(CallbackQueryHandler(keyboard_callback))
 
