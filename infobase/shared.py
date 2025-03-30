@@ -35,7 +35,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 load_dotenv()
 
-CHROMA_CLIENT = chromadb.PersistentClient(".chroma")
+CHROMA_CLIENT_DIR = ".chroma"
 
 EMBEDDINGS = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2",

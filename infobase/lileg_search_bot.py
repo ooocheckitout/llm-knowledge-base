@@ -5,9 +5,8 @@ from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
-from telegram.helpers import escape_markdown
 
-from infobase.shared import preview, EMBEDDINGS, CHROMA_CLIENT, LLM
+from infobase.shared import preview, EMBEDDINGS, CHROMA_CLIENT_DIR, LLM
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ async def welcome(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def search(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    message = (update.message or update.edited_message)
+    message = update.effective_message
 
     logger.info("search %s", preview(message.text))
 
@@ -32,11 +31,11 @@ async def search(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     vector_store = Chroma(
         collection_name=collection_name,
         embedding_function=EMBEDDINGS,
-        client=CHROMA_CLIENT
+        persist_directory=CHROMA_CLIENT_DIR,
     )
 
     logger.info("Performing search for query %s", preview(message.text))
-    results = vector_store.similarity_search_with_score(message.text, filter={"source": "telegram"})
+    results = vector_store.similarity_search_with_score(message.text)
 
     if not results:
         await message.reply_text(f'No results found 😔', reply_to_message_id=message.message_id)
@@ -47,7 +46,7 @@ async def search(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    message = (update.message or update.edited_message)
+    message = update.effective_message
 
     logger.info("search %s", preview(message.text))
 
@@ -55,11 +54,11 @@ async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     vector_store = Chroma(
         collection_name=collection_name,
         embedding_function=EMBEDDINGS,
-        client=CHROMA_CLIENT
+        persist_directory=CHROMA_CLIENT_DIR,
     )
 
     logger.info("Performing search for query %s", preview(message.text))
-    documents = vector_store.similarity_search(message.text, k=20, filter={"source": "telegram"})
+    documents = vector_store.similarity_search(message.text, k=20)
     document_context = "\n\n".join(doc.page_content for doc in documents)
 
     if not document_context:
