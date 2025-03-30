@@ -47,3 +47,5 @@ LLM = ChatOpenRouter(
     model="deepseek/deepseek-chat-v3-0324:free",
     temperature=0.7
 )
+
+DEBUG_USER_ID = "213260575"

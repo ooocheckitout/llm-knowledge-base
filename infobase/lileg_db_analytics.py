@@ -4,7 +4,6 @@ import os
 import chromadb
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
-from langchain.utils import secret_from_env
 from langchain_huggingface import HuggingFaceEmbeddings
 
 # LOGGING

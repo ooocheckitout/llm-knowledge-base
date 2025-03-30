@@ -1,8 +1,11 @@
+import shutil
+import hashlib
 from langchain.docstore.document import Document
 import logging.handlers
 import os
 from datetime import datetime, UTC
 from pathlib import Path
+from langdetect import LangDetectException
 
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PlaywrightURLLoader, PyPDFLoader
@@ -12,7 +15,8 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, Message
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, \
     CallbackQueryHandler, CallbackContext
 
-from infobase.shared import CHROMA_CLIENT_DIR, EMBEDDINGS
+from infobase.lileg_db_analytics import vector_store
+from infobase.shared import CHROMA_CLIENT_DIR, EMBEDDINGS, DEBUG_USER_ID
 
 logger = logging.getLogger(__name__)
 
@@ -70,20 +74,42 @@ async def reply_message(message: Message, user: User):
     )
 
 
-def create_text_document(message: Message):
-    logger.info("Creating document from message id %s", message.message_id)
-    return Document(page_content=message.text, metadata={
-        "source": "text",
+def hash_text(text: str, algorithm="sha256", encoding="utf-8") -> str:
+    hasher = hashlib.new(algorithm)
+    hasher.update(text.encode())
+    return hasher.hexdigest()
+
+
+def ingest_documents(collection_name: str, documents: list[Document], message: Message):
+    vector_store = Chroma(
+        collection_name=collection_name,
+        embedding_function=EMBEDDINGS,
+        persist_directory=CHROMA_CLIENT_DIR,
+    )
+
+    logger.info("Calculating hash from message id %s", message.message_id)
+    message_text_hash = hash_text(message.text)
+
+    language = "unknown"
+    try:
+        logger.info("Detecting language from message id %s", message.message_id)
+        language = detect(message.text)
+    except LangDetectException:
+        # langdetect.lang_detect_exception.LangDetectException: No features in text.
+        logger.warning("Failed to detect language from message id %s", message.message_id)
+
+    logger.info("Enhancing document metadata from message id %s", message.message_id)
+    message_metadata = {
+        "hash": message_text_hash,
         "message_id": str(message.message_id),
         "message_date": str(message.date),
         "ingested_on": str(datetime.now(UTC)),
-        "language": detect(message.text),
-    })
+        "language": language,
+    }
 
+    [x.metadata.update(message_metadata) for x in documents]
 
-def split_documents(documents: list[Document]):
     logger.info("Splitting %s documents", len(documents))
-
     # Telegram has a maximum message length of 4096 characters. As well as GPT-3.5-turbo context window.
     # We need to allow at around 1024 characters for a user prompt.
     # Additionally, we want to provide around 4 snippets to enhance the llm prompt.
@@ -91,18 +117,23 @@ def split_documents(documents: list[Document]):
         chunk_size=768,
         chunk_overlap=100
     )
-    return text_splitter.split_documents(documents)
-
-
-def ingest_documents(collection_name: str, documents: list[Document]):
-    vector_store = Chroma(
-        collection_name=collection_name,
-        embedding_function=EMBEDDINGS,
-        persist_directory=CHROMA_CLIENT_DIR,
-    )
+    documents = text_splitter.split_documents(documents)
 
     logger.info("Ingesting %s documents into collection %s", len(documents), collection_name)
-    vector_store.add_documents(documents)
+
+    vector_store.delete(where={"hash": message_text_hash})
+    document_ids = vector_store.add_documents(documents)
+
+    if collection_name == DEBUG_USER_ID:
+        results = vector_store.get(ids=document_ids)
+
+        for document_id, content, metadata in zip(results["ids"], results["documents"], results["metadatas"]):
+            local_debug_path = Path(".debug") / collection_name / metadata.get("message_id") / f"{document_id}.txt"
+            local_debug_path.parent.mkdir(parents=True, exist_ok=True)
+
+            logger.info("Writing document id %s debug file to %s", document_id, local_debug_path)
+            with open(local_debug_path, "w") as f:
+                f.write(content)
 
 
 async def ingest_text(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -110,8 +141,11 @@ async def ingest_text(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
     logger.info("Start indexing text from message id %s", update.effective_message.message_id)
 
-    document = create_text_document(update.effective_message)
-    ingest_documents(collection_name, split_documents([document]))
+    document = Document(
+        page_content=update.effective_message.text,
+        metadata={"source": update.effective_message.message_id}
+    )
+    ingest_documents(collection_name, [document], message=update.effective_message)
 
     logger.info("Finish indexing text from message id %s", update.effective_message.message_id)
 
@@ -127,7 +161,7 @@ async def ingest_url(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         urls=update.effective_message.text.splitlines(), remove_selectors=["header", "footer"]
     ).aload()
 
-    ingest_documents(collection_name, split_documents(documents))
+    ingest_documents(collection_name, documents, message=update.effective_message)
 
     logger.info("Finish indexing url from message id %s", update.effective_message.message_id)
 
@@ -149,7 +183,7 @@ async def ingest_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     logger.info("Loading content from pdf %s", local_file_path)
     documents = await PyPDFLoader(local_file_path).aload()
 
-    ingest_documents(collection_name, split_documents(documents))
+    ingest_documents(collection_name, documents, message=update.effective_message)
 
     logger.info("Finish indexing file from message id %s", update.effective_message.message_id)
 
