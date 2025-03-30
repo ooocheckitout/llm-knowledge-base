@@ -22,10 +22,8 @@ async def welcome(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
-async def search(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def similarity_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
-
-    logger.info("search %s", preview(message.text))
 
     collection_name = str(update.effective_user.id)
     vector_store = Chroma(
@@ -34,8 +32,10 @@ async def search(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         persist_directory=CHROMA_CLIENT_DIR,
     )
 
-    logger.info("Performing search for query %s", preview(message.text))
-    results = vector_store.similarity_search_with_score(message.text)
+    query = message.text.removeprefix("/similarity")
+
+    logger.info("Performing similarity search for query %s", preview(query))
+    results = vector_store.similarity_search_with_score(query)
 
     if not results:
         await message.reply_text(f'No results found 😔', reply_to_message_id=message.message_id)
@@ -85,6 +85,7 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_SEARCH_BOT_TOKEN')
 app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", welcome))
+app.add_handler(CommandHandler("similarity", similarity_search))
 app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), search_llm))
 
 app.run_polling()
