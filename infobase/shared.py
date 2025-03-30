@@ -22,18 +22,20 @@ def preview(text: str):
     return text[0:100].replace("\n", " ")
 
 
-local_logs_path = Path(".logs") / f"{os.path.basename(__file__)}.log"
-local_logs_path.parent.mkdir(parents=True, exist_ok=True)
+def configure_logging(name: str):
+    local_logs_path = Path(".logs") / f"{name}.log"
+    local_logs_path.parent.mkdir(parents=True, exist_ok=True)
 
-file_handler = logging.handlers.RotatingFileHandler(local_logs_path, backupCount=10)
-file_handler.doRollover()
+    file_handler = logging.handlers.RotatingFileHandler(local_logs_path, backupCount=10)
+    file_handler.doRollover()
 
-logging.basicConfig(
-    level=logging.INFO,
-    handlers=[file_handler, logging.StreamHandler()]
-)
+    logging.basicConfig(
+        level=logging.INFO,
+        handlers=[file_handler, logging.StreamHandler()]
+    )
 
-logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+
 
 load_dotenv()
 

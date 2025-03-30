@@ -1,3 +1,4 @@
+from pathlib import Path
 import logging.handlers
 import os
 
@@ -6,7 +7,9 @@ from langchain_core.prompts import ChatPromptTemplate
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 
-from infobase.shared import preview, EMBEDDINGS, CHROMA_CLIENT_DIR, LLM
+from infobase.shared import preview, EMBEDDINGS, CHROMA_CLIENT_DIR, LLM, DEBUG_USER_ID, configure_logging
+
+configure_logging(os.path.basename(__file__))
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +38,7 @@ async def similarity_search(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     query = message.text.removeprefix("/similarity")
 
     logger.info("Performing similarity search for query %s", preview(query))
-    results = vector_store.similarity_search_with_score(query)
+    results = vector_store.similarity_search_with_score(query, k=20)
 
     if not results:
         await message.reply_text(f'No results found 😔', reply_to_message_id=message.message_id)
@@ -79,6 +82,24 @@ Answer:
     response = LLM.invoke(messages)
 
     await message.reply_text(response.content, reply_to_message_id=message.message_id)
+
+    if collection_name == DEBUG_USER_ID:
+        local_debug_path = Path(".debug/search_llm") / collection_name / str(message.message_id)
+        local_debug_path.mkdir(parents=True, exist_ok=True)
+
+        with open(local_debug_path / f"input.txt", "w") as f:
+            f.write(message.text)
+
+        with open(local_debug_path / f"output.txt", "w") as f:
+            f.write(response.content)
+
+        for document in documents:
+            local_debug_similarity_path = local_debug_path / "similarity" / f"{document.id}.txt"
+            local_debug_similarity_path.parent.mkdir(parents=True, exist_ok=True)
+
+            logger.info("Writing document id %s debug file to %s", document.id, local_debug_similarity_path)
+            with open(local_debug_similarity_path, "w") as f:
+                f.write(document.page_content)
 
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_SEARCH_BOT_TOKEN')

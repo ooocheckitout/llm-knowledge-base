@@ -18,7 +18,9 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, Message
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, \
     CallbackQueryHandler, CallbackContext
 
-from infobase.shared import CHROMA_CLIENT_DIR, EMBEDDINGS, DEBUG_USER_ID
+from infobase.shared import CHROMA_CLIENT_DIR, EMBEDDINGS, DEBUG_USER_ID, configure_logging
+
+configure_logging(os.path.basename(__file__))
 
 logger = logging.getLogger(__name__)
 
@@ -127,14 +129,19 @@ def ingest_documents(collection_name: str, documents: list[Document], message: M
     document_ids = vector_store.add_documents(documents)
 
     if collection_name == DEBUG_USER_ID:
+        local_debug_path = Path(".debug/ingest_documents") / collection_name / str(message.message_id)
+        local_debug_path.mkdir(parents=True, exist_ok=True)
+
+        with open(local_debug_path / f"input.txt", "w") as f:
+            f.write(message.text)
+
         results = vector_store.get(ids=document_ids)
-
         for document_id, content, metadata in zip(results["ids"], results["documents"], results["metadatas"]):
-            local_debug_path = Path(".debug") / collection_name / metadata.get("message_id") / f"{document_id}.txt"
-            local_debug_path.parent.mkdir(parents=True, exist_ok=True)
+            local_debug_chunks_path = local_debug_path / "chunks" / f"{document_id}.txt"
+            local_debug_chunks_path.parent.mkdir(parents=True, exist_ok=True)
 
-            logger.info("Writing document id %s debug file to %s", document_id, local_debug_path)
-            with open(local_debug_path, "w") as f:
+            logger.info("Writing document id %s debug file to %s", document_id, local_debug_chunks_path)
+            with open(local_debug_chunks_path, "w") as f:
                 f.write(content)
 
 
@@ -162,6 +169,10 @@ async def ingest_url(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     documents = await PlaywrightURLLoader(
         urls=update.effective_message.text.splitlines(), remove_selectors=["header", "footer"]
     ).aload()
+
+    if all(doc.page_content == "" for doc in documents):
+        logger.info("Failed to fetch documents from message id %s", update.effective_message.message_id)
+        raise Exception("All documents are empty")
 
     ingest_documents(collection_name, documents, message=update.effective_message)
 
@@ -216,8 +227,6 @@ async def keyboard_callback(update: Update, _: CallbackContext) -> None:
 
 class EnsureSingleEntity(filters.Entity):
     def filter(self, message: Message) -> bool:
-        logger.info(message.entities)
-
         return message.entities and all(entity.type == self.entity_type for entity in message.entities)
 
 
