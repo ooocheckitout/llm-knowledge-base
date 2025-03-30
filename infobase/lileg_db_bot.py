@@ -1,15 +1,10 @@
-import shutil
 import hashlib
-
-import telegram.ext.filters
-from telegram.ext.filters import MessageFilter
-from langchain.docstore.document import Document
 import logging.handlers
 import os
 from datetime import datetime, UTC
 from pathlib import Path
-from langdetect import LangDetectException
 
+from langchain.docstore.document import Document
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PlaywrightURLLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -85,6 +80,10 @@ def hash_text(text: str, algorithm="sha256", encoding="utf-8") -> str:
 
 
 def ingest_documents(collection_name: str, documents: list[Document], message: Message):
+    if all(doc.page_content == "" for doc in documents):
+        logger.info("Failed to fetch documents from message id %s", update.effective_message.message_id)
+        raise Exception("All documents are empty")
+
     vector_store = Chroma(
         collection_name=collection_name,
         embedding_function=EMBEDDINGS,
@@ -92,13 +91,13 @@ def ingest_documents(collection_name: str, documents: list[Document], message: M
     )
 
     logger.info("Calculating hash from message id %s", message.message_id)
-    message_text_hash = hash_text(message.text)
+    message_text_hash = hash_text(message.text or message.document.file_name)
 
     language = "unknown"
     try:
         logger.info("Detecting language from message id %s", message.message_id)
         language = detect(message.text)
-    except LangDetectException:
+    except Exception:
         # langdetect.lang_detect_exception.LangDetectException: No features in text.
         logger.warning("Failed to detect language from message id %s", message.message_id)
 
@@ -123,9 +122,10 @@ def ingest_documents(collection_name: str, documents: list[Document], message: M
     )
     documents = text_splitter.split_documents(documents)
 
-    logger.info("Ingesting %s documents into collection %s", len(documents), collection_name)
-
+    logger.info("Deleting documents with hash %s from collection %s", message_text_hash, collection_name)
     vector_store.delete(where={"hash": message_text_hash})
+
+    logger.info("Ingesting %s documents into collection %s", len(documents), collection_name)
     document_ids = vector_store.add_documents(documents)
 
     if collection_name == DEBUG_USER_ID:
@@ -133,7 +133,7 @@ def ingest_documents(collection_name: str, documents: list[Document], message: M
         local_debug_path.mkdir(parents=True, exist_ok=True)
 
         with open(local_debug_path / f"input.txt", "w") as f:
-            f.write(message.text)
+            f.write(message.text or message.document.file_name)
 
         results = vector_store.get(ids=document_ids)
         for document_id, content, metadata in zip(results["ids"], results["documents"], results["metadatas"]):
@@ -169,10 +169,6 @@ async def ingest_url(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     documents = await PlaywrightURLLoader(
         urls=update.effective_message.text.splitlines(), remove_selectors=["header", "footer"]
     ).aload()
-
-    if all(doc.page_content == "" for doc in documents):
-        logger.info("Failed to fetch documents from message id %s", update.effective_message.message_id)
-        raise Exception("All documents are empty")
 
     ingest_documents(collection_name, documents, message=update.effective_message)
 

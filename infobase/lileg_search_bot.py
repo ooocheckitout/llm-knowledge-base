@@ -1,7 +1,8 @@
-from pathlib import Path
 import logging.handlers
 import os
+from pathlib import Path
 
+import telegramify_markdown
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from telegram import Update
@@ -66,7 +67,7 @@ async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
     if not document_context:
         document_context = (
-            "User have not added any context to the vector database. Tell him to add some context by messaging to @lileg_db_bot."
+            r"User have not added any context to the vector database. Tell him to add some context by messaging to @lileg\_db\_bot."
         )
 
     prompt_template = """
@@ -81,7 +82,8 @@ Answer:
     logger.info("Executing llm prompt for query %s with template %s", preview(message.text), prompt_template)
     response = LLM.invoke(messages)
 
-    await message.reply_text(response.content, reply_to_message_id=message.message_id)
+    telegram_markdown = telegramify_markdown.markdownify(response.content)
+    await message.reply_markdown_v2(telegram_markdown, reply_to_message_id=message.message_id)
 
     if collection_name == DEBUG_USER_ID:
         local_debug_path = Path(".debug/search_llm") / collection_name / str(message.message_id)
