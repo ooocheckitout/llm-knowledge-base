@@ -8,7 +8,6 @@ from langchain.embeddings import CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
 from langchain_chroma import Chroma
 from langchain_core.chat_history import BaseChatMessageHistory, InMemoryChatMessageHistory
-from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from langchain_core.runnables import RunnableWithMessageHistory
@@ -29,7 +28,7 @@ class GlobalState(TypedDict):
 
 class QuestionState(MessagesState):
     question: str
-    context: list[Document]
+    context: list[str]
 
 
 class AnswerState(TypedDict):
@@ -75,7 +74,25 @@ chain = RunnableWithMessageHistory(
     prompt | llm,
     get_by_session_id,
     input_messages_key="question",
-    history_messages_key="history"
+    history_messages_key="history",
+    # history_factory_config=[
+    #     ConfigurableFieldSpec(
+    #         id="user_id",
+    #         annotation=str,
+    #         name="User ID",
+    #         description="Unique identifier for the user.",
+    #         default="",
+    #         is_shared=True,
+    #     ),
+    #     ConfigurableFieldSpec(
+    #         id="conversation_id",
+    #         annotation=str,
+    #         name="Conversation ID",
+    #         description="Unique identifier for the conversation.",
+    #         default="",
+    #         is_shared=True,
+    #     ),
+    # ],
 )
 
 embeddings = HuggingFaceEmbeddings(
@@ -94,9 +111,13 @@ cached_embedder = CacheBackedEmbeddings.from_bytes_store(
 )
 
 
-def retrieve_context(state: QuestionState):
-    documents = vector_store.similarity_search(state["question"], k=12)
-    return {"context": [x.page_content for x in documents]}
+def retrieve_context(state: QuestionState, config: RunnableConfig):
+    documents = vector_store.similarity_search(
+        state["question"],
+        k=12,
+        filter={"user_id": config["configurable"]["session_id"]}
+    )
+    return {"context": [x.page_content for x in documents] + state["context"]}
 
 
 def chatbot(state: QuestionState, config: RunnableConfig):
@@ -113,13 +134,13 @@ graph = builder.compile()
 
 if __name__ == "__main__":
     graph.invoke(
-        {"question": "Hello!", "messages": []},
+        {"question": "Hello!", "messages": [], "context": ["My name is Oleh."]},
         {"configurable": {"session_id": "1"}}
     )
     print(global_state["sessions"]["1"])
 
     graph.invoke(
-        {"question": "Yo!", "messages": []},
+        {"question": "Yo!", "messages": [], "context": ["I live in Poland."]},
         {"configurable": {"session_id": "1"}}
     )
     print(global_state["sessions"]["1"])

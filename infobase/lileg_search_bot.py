@@ -1,30 +1,16 @@
 import logging.handlers
 import os
-from pathlib import Path
 
+import requests
 import telegramify_markdown
-from langchain_chroma import Chroma
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables.history import RunnableWithMessageHistory
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, CallbackContext
 
-from infobase.shared import preview, EMBEDDINGS, CHROMA_CLIENT_DIR, DEBUG_USER_ID, configure_logging, LLM
+from infobase.shared import preview, configure_logging
 
 configure_logging(os.path.basename(__file__))
 
 logger = logging.getLogger(__name__)
-
-prompt_template = """
-You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
-Question: {question}
-Context: {context} 
-Answer:
-        """
-prompt = ChatPromptTemplate.from_template(prompt_template)
-# history = RunnableWithMessageHistory()
-
-chain = prompt | LLM
 
 
 async def welcome(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -42,23 +28,18 @@ async def similarity_search(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     message = update.effective_message
 
     collection_name = str(update.effective_user.id)
-    vector_store = Chroma(
-        collection_name=collection_name,
-        embedding_function=EMBEDDINGS,
-        persist_directory=CHROMA_CLIENT_DIR,
-    )
+    logger.info("Performing similarity search for query %s", preview(message.text))
+    similarity_response = requests.post('http://localhost:8000/similarity', data={
+        'text': 1,
+        'filter': {"user_id": collection_name},
+        'n_results': 12
+    }).json()
 
-    query = message.text.removeprefix("/similarity")
-
-    logger.info("Performing similarity search for query %s", preview(query))
-    results = vector_store.similarity_search_with_score(query, k=20)
-
-    if not results:
+    if not similarity_response["results"]:
         await message.reply_text(f'No results found 😔', reply_to_message_id=message.message_id)
 
-    for doc, score in results:
-        logger.info(f"* [SIM={score:3f}; LENGTH={len(doc.page_content)}] [{doc.metadata}]")
-        await message.reply_text(doc.page_content, reply_to_message_id=message.message_id)
+    for result in similarity_response["results"]:
+        await message.reply_text(result, reply_to_message_id=message.message_id)
 
 
 async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -67,46 +48,30 @@ async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     logger.info("search %s", preview(message.text))
 
     collection_name = str(update.effective_user.id)
-    vector_store = Chroma(
-        collection_name=collection_name,
-        embedding_function=EMBEDDINGS,
-        persist_directory=CHROMA_CLIENT_DIR,
-    )
 
-    logger.info("Performing search for query %s", preview(message.text))
-    documents = vector_store.similarity_search(message.text, k=20)
-    document_context = "\n\n".join(doc.page_content for doc in documents)
+    logger.info("Performing similarity search for query %s", preview(message.text))
+    similarity_response = requests.post('http://localhost:8000/similarity', json={
+        'text': message.text,
+        'filter': {"user_id": collection_name},
+        'n_results': 12
+    })
+    similarity_response = similarity_response.json()
 
-    if not document_context:
-        document_context = (
+    context = "\n\n".join(similarity_response["results"])
+    if not context:
+        context = (
             r"User have not added any context to the vector database. Tell him to add some context by messaging to @lileg\_db\_bot."
         )
 
-    logger.info("Executing llm prompt for query %s with template %s", preview(message.text), prompt_template)
+    logger.info("Executing llm prompt for query %s", preview(message.text))
+    llm_response = requests.post('http://localhost:8000/llm', json={
+        'question': message.text, 'context': context, 'user_id': collection_name
+    })
+    llm_response = llm_response.json()
 
-    retriever = vector_store.as_retriever(search_kwargs={"k": 12})
-    response = chain.invoke({"question": message.text, "context": document_context})
-
-    markdown_content = telegramify_markdown.markdownify(response.content)
-    reply_message = await message.reply_markdown_v2(markdown_content, reply_to_message_id=message.message_id)
-
-    if collection_name == DEBUG_USER_ID:
-        local_debug_path = Path(".debug/search_llm") / collection_name / str(message.message_id)
-        local_debug_path.mkdir(parents=True, exist_ok=True)
-
-        with open(local_debug_path / f"input.txt", "w") as f:
-            f.write(message.text)
-
-        with open(local_debug_path / f"output.txt", "w") as f:
-            f.write(response.content)
-
-            for document in documents:
-                local_debug_similarity_path = local_debug_path / "similarity" / f"{document.id}.txt"
-                local_debug_similarity_path.parent.mkdir(parents=True, exist_ok=True)
-
-                logger.info("Writing document id %s debug file to %s", document.id, local_debug_similarity_path)
-                with open(local_debug_similarity_path, "w") as f:
-                    f.write(document.page_content)
+    logger.info("Sending a reply for query %s", preview(message.text))
+    markdown_content = telegramify_markdown.markdownify(llm_response["answer"])
+    await message.reply_markdown_v2(markdown_content, reply_to_message_id=message.message_id)
 
 
 def error_handler(update: Update, context: CallbackContext) -> None:
