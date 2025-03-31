@@ -113,11 +113,14 @@ def ingest_documents(collection_name: str, documents: list[Document], message: M
     [x.metadata.update(message_metadata) for x in documents]
 
     logger.info("Splitting %s documents", len(documents))
-    # Telegram has a maximum message length of 4096 characters. As well as GPT-3.5-turbo context window.
-    # We need to allow at around 1024 characters for a user prompt.
-    # Additionally, we want to provide around 4 snippets to enhance the llm prompt.
+    # Telegram has a maximum message length of 4096 characters.
+    # The GPT-3.5-turbo context window is 4096 tokens.
+    # The token is around 4 characters.
+    # We want to allow 4096 characters for a user prompt which is 1024 tokens.
+    # Additionally, we can provide 3072 tokens as prompt snippets for llm context.
+    # For example 12 snippents will result in 256 tokens or 1024 characters per snippet.
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=768,
+        chunk_size=1024,
         chunk_overlap=100
     )
     documents = text_splitter.split_documents(documents)

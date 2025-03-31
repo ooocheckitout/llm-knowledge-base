@@ -1,8 +1,8 @@
 import logging.handlers
 import os
+from pathlib import Path
 from typing import Optional
 
-from pathlib import Path
 from dotenv import load_dotenv
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
@@ -49,7 +49,8 @@ EMBEDDINGS = HuggingFaceEmbeddings(
 
 LLM = ChatOpenRouter(
     model="deepseek/deepseek-chat-v3-0324:free",
-    temperature=0.7
+    temperature=0.7,
+    max_completion_tokens=1024,
 )
 
 DEBUG_USER_ID = "213260575"
