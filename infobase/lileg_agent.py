@@ -12,7 +12,6 @@ from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from langchain_core.runnables import RunnableWithMessageHistory
-from langchain_core.tools import tool
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 from langgraph.constants import START, END
@@ -93,8 +92,6 @@ vector_store = Chroma(
 cached_embedder = CacheBackedEmbeddings.from_bytes_store(
     embeddings, LocalFileStore(".cache"), namespace=embeddings.model_name
 )
-
-vector_store = vector_store.from_texts(["my name is oleh"], cached_embedder)
 
 
 def retrieve_context(state: QuestionState):
