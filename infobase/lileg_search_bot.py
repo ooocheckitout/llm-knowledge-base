@@ -8,7 +8,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 
-from infobase.shared import preview, EMBEDDINGS, CHROMA_CLIENT_DIR, LLM, DEBUG_USER_ID, configure_logging
+from infobase.shared import preview, EMBEDDINGS, CHROMA_CLIENT_DIR, DEBUG_USER_ID, configure_logging, LLM
 
 configure_logging(os.path.basename(__file__))
 
@@ -82,8 +82,8 @@ Answer:
     logger.info("Executing llm prompt for query %s with template %s", preview(message.text), prompt_template)
     response = LLM.invoke(messages)
 
-    telegram_markdown = telegramify_markdown.markdownify(response.content)
-    await message.reply_markdown_v2(telegram_markdown, reply_to_message_id=message.message_id)
+    markdown_content = telegramify_markdown.markdownify(response.content)
+    reply_message = await message.reply_markdown_v2(markdown_content, reply_to_message_id=message.message_id)
 
     if collection_name == DEBUG_USER_ID:
         local_debug_path = Path(".debug/search_llm") / collection_name / str(message.message_id)
@@ -95,8 +95,8 @@ Answer:
         with open(local_debug_path / f"output.txt", "w") as f:
             f.write(response.content)
 
-        for document in documents:
-            local_debug_similarity_path = local_debug_path / "similarity" / f"{document.id}.txt"
+            for document in documents:
+                local_debug_similarity_path = local_debug_path / "similarity" / f"{document.id}.txt"
             local_debug_similarity_path.parent.mkdir(parents=True, exist_ok=True)
 
             logger.info("Writing document id %s debug file to %s", document.id, local_debug_similarity_path)
