@@ -1,6 +1,9 @@
+fastapi
+
 python-telegram-bot
 telegramify-markdown
 
+langgraph
 langchain
 langchain-huggingface
 langchain-text-splitters
@@ -12,6 +15,7 @@ pypdf
 poppler-utils
 # python 3.13 not compatible
 # tesseract-ocr
+# pygraphviz
 langdetect
 
 matplotlib
