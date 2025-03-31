@@ -47,26 +47,15 @@ async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
     logger.info("search %s", preview(message.text))
 
-    collection_name = str(update.effective_user.id)
-
-    logger.info("Performing similarity search for query %s", preview(message.text))
-    similarity_response = requests.post('http://localhost:8000/similarity', json={
-        'text': message.text,
-        'filter': {"user_id": collection_name},
-        'n_results': 12
-    })
-    similarity_response = similarity_response.json()
-
-    context = "\n\n".join(similarity_response["results"])
-    if not context:
-        context = (
-            r"User have not added any context to the vector database. Tell him to add some context by messaging to @lileg\_db\_bot."
-        )
+    user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
+    context = r"If the user doesn't have any context he should try messaging to @lileg\_db\_bot."
 
     logger.info("Executing llm prompt for query %s", preview(message.text))
-    llm_response = requests.post('http://localhost:8000/llm', json={
-        'question': message.text, 'context': context, 'user_id': collection_name
-    })
+    llm_response = requests.post(
+        f"http://localhost:8000/users/{user_id}/chats/{chat_id}/complete",
+        json={'question': message.text}
+    )
     llm_response = llm_response.json()
 
     logger.info("Sending a reply for query %s", preview(message.text))
