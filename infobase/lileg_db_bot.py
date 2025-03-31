@@ -224,6 +224,10 @@ async def keyboard_callback(update: Update, _: CallbackContext) -> None:
         await query.answer(f"Not supported!")
 
 
+def error_handler(update: Update, context: CallbackContext) -> None:
+    logger.warning(f'Update "{update}" caused error "{context.error}"')
+
+
 class EnsureSingleEntity(filters.Entity):
     def filter(self, message: Message) -> bool:
         return message.entities and all(entity.type == self.entity_type for entity in message.entities)
@@ -238,5 +242,6 @@ app.add_handler(MessageHandler(EnsureSingleEntity("url"), ingest_url))
 app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), ingest_text))
 app.add_handler(MessageHandler(filters.Document.ALL, ingest_file))
 app.add_handler(CallbackQueryHandler(keyboard_callback))
+app.add_error_handler(error_handler)
 
 app.run_polling()

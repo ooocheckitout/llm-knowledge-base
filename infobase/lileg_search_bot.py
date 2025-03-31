@@ -5,14 +5,26 @@ from pathlib import Path
 import telegramify_markdown
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables.history import RunnableWithMessageHistory
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, CallbackContext
 
 from infobase.shared import preview, EMBEDDINGS, CHROMA_CLIENT_DIR, DEBUG_USER_ID, configure_logging, LLM
 
 configure_logging(os.path.basename(__file__))
 
 logger = logging.getLogger(__name__)
+
+prompt_template = """
+You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
+Question: {question}
+Context: {context} 
+Answer:
+        """
+prompt = ChatPromptTemplate.from_template(prompt_template)
+# history = RunnableWithMessageHistory()
+
+chain = prompt | LLM
 
 
 async def welcome(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -70,17 +82,10 @@ async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
             r"User have not added any context to the vector database. Tell him to add some context by messaging to @lileg\_db\_bot."
         )
 
-    prompt_template = """
-You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
-Question: {question}
-Context: {context} 
-Answer:
-        """
-    prompt = ChatPromptTemplate.from_template(prompt_template)
-    messages = prompt.invoke({"question": message.text, "context": document_context})
-
     logger.info("Executing llm prompt for query %s with template %s", preview(message.text), prompt_template)
-    response = LLM.invoke(messages)
+
+    retriever = vector_store.as_retriever(search_kwargs={"k": 12})
+    response = chain.invoke({"question": message.text, "context": document_context})
 
     markdown_content = telegramify_markdown.markdownify(response.content)
     reply_message = await message.reply_markdown_v2(markdown_content, reply_to_message_id=message.message_id)
@@ -97,11 +102,15 @@ Answer:
 
             for document in documents:
                 local_debug_similarity_path = local_debug_path / "similarity" / f"{document.id}.txt"
-            local_debug_similarity_path.parent.mkdir(parents=True, exist_ok=True)
+                local_debug_similarity_path.parent.mkdir(parents=True, exist_ok=True)
 
-            logger.info("Writing document id %s debug file to %s", document.id, local_debug_similarity_path)
-            with open(local_debug_similarity_path, "w") as f:
-                f.write(document.page_content)
+                logger.info("Writing document id %s debug file to %s", document.id, local_debug_similarity_path)
+                with open(local_debug_similarity_path, "w") as f:
+                    f.write(document.page_content)
+
+
+def error_handler(update: Update, context: CallbackContext) -> None:
+    logger.warning(f'Update "{update}" caused error "{context.error}"')
 
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_SEARCH_BOT_TOKEN')
@@ -110,5 +119,6 @@ app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", welcome))
 app.add_handler(CommandHandler("similarity", similarity_search))
 app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), search_llm))
+app.add_error_handler(error_handler)
 
 app.run_polling()
