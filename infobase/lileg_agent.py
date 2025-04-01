@@ -11,7 +11,7 @@ from langchain_chroma import Chroma
 from langchain_community.cache import SQLiteCache
 from langchain_community.llms.fake import FakeListLLM
 from langchain_core.chat_history import BaseChatMessageHistory, InMemoryChatMessageHistory
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -47,11 +47,11 @@ class ChatOpenRouter(ChatOpenAI):
 
 
 llm = FakeListLLM(responses=["YO!"])
-# llm = ChatOpenRouter(
-#     model="deepseek/deepseek-chat-v3-0324:free",
-#     temperature=0.3,
-#     max_completion_tokens=1024,
-# )
+llm = ChatOpenRouter(
+    model="deepseek/deepseek-chat-v3-0324:free",
+    temperature=0.3,
+    max_completion_tokens=1024,
+)
 
 # llm = HuggingFaceEndpoint(
 #     model="openai-community/gpt2",
@@ -66,27 +66,6 @@ def get_message_history_by_session_id(session_id: str) -> BaseChatMessageHistory
         global_state["sessions"][session_id] = InMemoryChatMessageHistory()
 
     return global_state["sessions"][session_id]
-
-
-def trim_history(state: dict, max_length: int = 2):
-    if len(state["history"]) > max_length:
-        state["history"] = state["history"][:max_length]
-        return state
-
-    return state
-
-
-def list_variable_parser(state: dict):
-    for var_key, var_value in state.items():
-        if not isinstance(var_value, list):
-            continue
-
-        if all(isinstance(x, BaseMessage) for x in var_value):
-            var_value = [x.content for x in var_value]
-
-        state[var_key] = "\n".join([x for x in var_value])
-
-    return state
 
 
 template = """
@@ -114,7 +93,7 @@ embeddings = HuggingFaceEmbeddings(
 )
 
 cached_embedder = CacheBackedEmbeddings.from_bytes_store(
-    embeddings, LocalFileStore(".cache/embeddings"), namespace=embeddings.model_name
+    embeddings, LocalFileStore(".cached_embeddings"), namespace=embeddings.model_name
 )
 
 vector_store = Chroma(
@@ -149,7 +128,9 @@ def enrich_context(state: PromptState, config: RunnableConfig):
 def chatbot(state: PromptState, config: RunnableConfig):
     print(chatbot.__name__, state)
 
-    return {"answer": chain.invoke({**state}, config)}
+    completion = chain.invoke({**state}, config)
+
+    return {"answer": completion.content}
 
 
 def save_history(state: PromptState, config: RunnableConfig):
@@ -170,7 +151,7 @@ builder.add_sequence([enrich_history, enrich_context, chatbot, save_history])
 graph = builder.compile()
 
 if __name__ == "__main__":
-    set_llm_cache(SQLiteCache(database_path=".cache/completions"))
+    set_llm_cache(SQLiteCache(database_path=".cached_completions"))
 
     graph.invoke(
         PromptState(question="My name is Oleh.", history="", context="", answer=""),
@@ -186,4 +167,4 @@ if __name__ == "__main__":
     )
     print(global_state["sessions"]["1"])
 
-set_llm_cache(SQLiteCache(database_path=".cache/completions"))
+set_llm_cache(SQLiteCache(database_path=".cached_completions"))
