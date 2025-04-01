@@ -13,11 +13,11 @@ from langchain_community.llms.fake import FakeListLLM
 from langchain_core.chat_history import BaseChatMessageHistory, InMemoryChatMessageHistory
 from langchain_core.messages import BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableConfig, RunnableWithMessageHistory, RunnableLambda
+from langchain_core.runnables import RunnableConfig
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 from langgraph.constants import START
-from langgraph.graph import StateGraph, MessagesState
+from langgraph.graph import StateGraph
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,14 +29,11 @@ class GlobalState(TypedDict):
     sessions: dict[str, InMemoryChatMessageHistory]
 
 
-class VariablesDict(TypedDict):
+class PromptState(TypedDict):
     question: str
-    context: list[str]
-
-
-class PromptState(MessagesState):
-    template: str
-    variables: VariablesDict
+    history: str
+    context: str
+    answer: str
 
 
 class ChatOpenRouter(ChatOpenAI):
@@ -49,12 +46,12 @@ class ChatOpenRouter(ChatOpenAI):
         super().__init__(base_url=base_url, api_key=api_key, model=model, **kwargs)
 
 
-llm = ChatOpenRouter(
-    model="deepseek/deepseek-chat-v3-0324:free",
-    temperature=0.3,
-    max_completion_tokens=1024,
-)
 llm = FakeListLLM(responses=["YO!"])
+# llm = ChatOpenRouter(
+#     model="deepseek/deepseek-chat-v3-0324:free",
+#     temperature=0.3,
+#     max_completion_tokens=1024,
+# )
 
 # llm = HuggingFaceEndpoint(
 #     model="openai-community/gpt2",
@@ -70,6 +67,40 @@ def get_message_history_by_session_id(session_id: str) -> BaseChatMessageHistory
 
     return global_state["sessions"][session_id]
 
+
+def trim_history(state: dict, max_length: int = 2):
+    if len(state["history"]) > max_length:
+        state["history"] = state["history"][:max_length]
+        return state
+
+    return state
+
+
+def list_variable_parser(state: dict):
+    for var_key, var_value in state.items():
+        if not isinstance(var_value, list):
+            continue
+
+        if all(isinstance(x, BaseMessage) for x in var_value):
+            var_value = [x.content for x in var_value]
+
+        state[var_key] = "\n".join([x for x in var_value])
+
+    return state
+
+
+template = """
+You are a helpful assistant.
+Combine the chat history and follow up question into a standalone question:
+History: {history}
+Question: {question}
+Answer the standalone question based on the context.
+Context: {context}
+"""
+
+prompt = ChatPromptTemplate.from_template(template)
+
+chain = prompt | llm
 
 # embeddings = HuggingFaceEndpointEmbeddings(
 #     model="sentence-transformers/all-MiniLM-L6-v2",
@@ -92,85 +123,65 @@ vector_store = Chroma(
 )
 
 
-def retrieve_similarities(state: PromptState, config: RunnableConfig):
+def enrich_history(state: PromptState, config: RunnableConfig):
+    print(enrich_history.__name__, state)
+
+    session_id = config["configurable"]["session_id"]
+    session_history = get_message_history_by_session_id(session_id)
+
+    history = "\n".join([x.content for x in session_history.messages])
+
+    return {"history": history}
+
+
+def enrich_context(state: PromptState, config: RunnableConfig):
+    print(enrich_context.__name__, state)
+
     documents = vector_store.similarity_search(
-        query=state["variables"]["question"],
+        query=state["question"],
         k=12,
         filter={"session_id": config["configurable"]["session_id"]},
     )
-    return {"context": [x.page_content for x in documents] + state["variables"]["context"]}
+    context = "\n".join([x.page_content for x in documents])
+    return {"context": context}
 
 
-def trim_history(state: dict, max_length: int = 1):
-    if len(state["history"]) > max_length:
-        state["history"] = state["history"][:max_length]
-        return state
+def chatbot(state: PromptState, config: RunnableConfig):
+    print(chatbot.__name__, state)
 
-    return state
+    return {"answer": chain.invoke({**state}, config)}
 
 
-def list_variable_parser(state: dict):
-    for var_key, var_value in state.items():
-        if not isinstance(var_value, list):
-            continue
+def save_history(state: PromptState, config: RunnableConfig):
+    print(save_history.__name__, state)
 
-        if all(isinstance(x, BaseMessage) for x in var_value):
-            var_value = [x.content for x in var_value]
+    session_id = config["configurable"]["session_id"]
+    history = get_message_history_by_session_id(session_id)
 
-        state[var_key] = "\n\n".join([x for x in var_value])
+    history.add_user_message(state["question"])
+    history.add_ai_message(state["answer"])
 
-    return state
-
-
-def chatbot_with_history(state: PromptState, config: RunnableConfig):
-    prompt = ChatPromptTemplate.from_template(state["template"])
-    chain_with_history = RunnableWithMessageHistory(
-        RunnableLambda(trim_history) | RunnableLambda(list_variable_parser) | prompt | llm,
-        get_message_history_by_session_id,
-        input_messages_key="question",
-        history_messages_key="history",
-    )
-    messages = chain_with_history.invoke({**state["variables"]}, config)
-    return {"messages": messages}
+    return {}
 
 
 builder = StateGraph(state_schema=PromptState)
-builder.add_sequence([retrieve_similarities, chatbot_with_history])
-builder.add_edge(START, "retrieve_similarities")
+builder.add_edge(START, "enrich_history")
+builder.add_sequence([enrich_history, enrich_context, chatbot, save_history])
 graph = builder.compile()
 
 if __name__ == "__main__":
-    vector_store = vector_store.from_texts(["Capital of Poland is Niagara."], cached_embedder)
-
     set_llm_cache(SQLiteCache(database_path=".cache/completions"))
 
-    template = """
-You are a helpful assistant. Answer the question based on the context.
-Context: {context}
-Combine the chat history and follow up question into a standalone question:
-History: {history}
-Question: {question}
-Answer the standalone question based on the context.
-"""
     graph.invoke(
-        PromptState(
-            template=template,
-            variables=VariablesDict(
-                question="What is the capital of Poland?",
-                context=["Capital of Poland is Mumbai."]
-            ),
-            messages=[]
-        ),
+        PromptState(question="My name is Oleh.", history="", context="", answer=""),
         RunnableConfig(configurable={"session_id": "1"}),
     )
     print(global_state["sessions"]["1"])
 
+    vector_store = vector_store.from_texts(["My surname is Solomoichenko"], cached_embedder)
+
     graph.invoke(
-        PromptState(
-            template=template,
-            variables=VariablesDict(question="What is the capital of Poland?", context=[]),
-            messages=[]
-        ),
+        PromptState(question="What is my full name?", history="", context="", answer=""),
         RunnableConfig(configurable={"session_id": "1"}),
     )
     print(global_state["sessions"]["1"])
