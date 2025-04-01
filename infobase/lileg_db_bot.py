@@ -4,24 +4,23 @@ import os
 from datetime import datetime, UTC
 from pathlib import Path
 
+import requests
+from dotenv import load_dotenv
 from langchain.docstore.document import Document
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PlaywrightURLLoader, PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langdetect import detect
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, Message, User
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, \
     CallbackQueryHandler, CallbackContext
 
-from infobase.shared import CHROMA_CLIENT_DIR, EMBEDDINGS, DEBUG_USER_ID, configure_logging
+# configure_logging(os.path.basename(__file__))
 
-configure_logging(os.path.basename(__file__))
-
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
-
-def preview(text: str):
-    return text[0:100].replace("\n", " ")
+load_dotenv()
 
 
 async def welcome(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -112,56 +111,32 @@ def ingest_documents(collection_name: str, documents: list[Document], message: M
 
     [x.metadata.update(message_metadata) for x in documents]
 
-    logger.info("Splitting %s documents", len(documents))
-    # Telegram has a maximum message length of 4096 characters.
-    # The GPT-3.5-turbo context window is 4096 tokens.
-    # The token is around 4 characters.
-    # We want to allow 4096 characters for a user prompt which is 1024 tokens.
-    # Additionally, we can provide 3072 tokens as prompt snippets for llm context.
-    # For example 12 snippents will result in 256 tokens or 1024 characters per snippet.
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1024,
-        chunk_overlap=100
-    )
-    documents = text_splitter.split_documents(documents)
-
-    logger.info("Deleting documents with hash %s from collection %s", message_text_hash, collection_name)
-    vector_store.delete(where={"hash": message_text_hash})
-
-    logger.info("Ingesting %s documents into collection %s", len(documents), collection_name)
-    document_ids = vector_store.add_documents(documents)
-
-    if collection_name == DEBUG_USER_ID:
-        local_debug_path = Path(".debug/ingest_documents") / collection_name / str(message.message_id)
-        local_debug_path.mkdir(parents=True, exist_ok=True)
-
-        with open(local_debug_path / f"input.txt", "w") as f:
-            f.write(message.text or message.document.file_name)
-
-        results = vector_store.get(ids=document_ids)
-        for document_id, content, metadata in zip(results["ids"], results["documents"], results["metadatas"]):
-            local_debug_chunks_path = local_debug_path / "chunks" / f"{document_id}.txt"
-            local_debug_chunks_path.parent.mkdir(parents=True, exist_ok=True)
-
-            logger.info("Writing document id %s debug file to %s", document_id, local_debug_chunks_path)
-            with open(local_debug_chunks_path, "w") as f:
-                f.write(content)
-
 
 async def ingest_text(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    collection_name = str(update.effective_user.id)
+    message = update.effective_message
 
-    logger.info("Start indexing text from message id %s", update.effective_message.message_id)
+    logger.info("Start indexing text from message id %s", message.message_id)
 
-    document = Document(
-        page_content=update.effective_message.text,
-        metadata={"source": update.effective_message.message_id}
+    user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    response = requests.post(
+        f'http://localhost:8000/users/{user_id}/chats/{chat_id}/vectorize',
+        json=[{
+            "content": message.text,
+            "metadata": {"source": str(message.message_id)}
+        }]
     )
-    ingest_documents(collection_name, [document], message=update.effective_message)
 
-    logger.info("Finish indexing text from message id %s", update.effective_message.message_id)
+    if not response.ok:
+        raise Exception(
+            "Failed to vectorize from message id %s! [%s]: %s",
+            message.message_id, response.status_code, response.text
+        )
 
-    await reply_message(update.effective_message, update.effective_user)
+    logger.info("Finish indexing text from message id %s", message.message_id)
+
+    await reply_message(message, update.effective_user)
 
 
 async def ingest_url(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:

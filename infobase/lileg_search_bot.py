@@ -3,14 +3,15 @@ import os
 
 import requests
 import telegramify_markdown
+from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, CallbackContext
 
-from infobase.shared import preview, configure_logging
-
-configure_logging(os.path.basename(__file__))
-
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
+load_dotenv()
 
 
 async def welcome(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -24,42 +25,61 @@ async def welcome(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
-async def similarity_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def similarity_search(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
 
-    collection_name = str(update.effective_user.id)
-    logger.info("Performing similarity search for query %s", preview(message.text))
-    similarity_response = requests.post('http://localhost:8000/similarity', data={
-        'text': 1,
-        'filter': {"user_id": collection_name},
-        'n_results': 12
-    }).json()
+    logger.info("Searching for message id %s", message.message_id)
 
-    if not similarity_response["results"]:
+    user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    response = requests.post(
+        f'http://localhost:8000/users/{user_id}/chats/{chat_id}/similarity',
+        json={'query': message.text, 'n_results': 12}
+    )
+
+    if not response.ok:
+        raise Exception(
+            "Failed to search from message id %s! [%s]: %s",
+            update.effective_message.message_id, response.status_code, response.text
+        )
+
+    logger.info("Replying for message id %s", message.message_id)
+
+    embeddings = response.json()
+
+    if not any(embeddings):
         await message.reply_text(f'No results found 😔', reply_to_message_id=message.message_id)
 
-    for result in similarity_response["results"]:
-        await message.reply_text(result, reply_to_message_id=message.message_id)
+    for embedding in embeddings:
+        await message.reply_text(embedding["content"], reply_to_message_id=message.message_id)
 
 
 async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
 
-    logger.info("search %s", preview(message.text))
+    logger.info("Searching for message id %s", message.message_id)
 
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
     context = r"If the user doesn't have any context he should try messaging to @lileg\_db\_bot."
 
-    logger.info("Executing llm prompt for query %s", preview(message.text))
-    llm_response = requests.post(
+    logger.info("Prompting for message id %s", message.message_id)
+    response = requests.post(
         f"http://localhost:8000/users/{user_id}/chats/{chat_id}/complete",
-        json={'question': message.text}
+        json={'question': context + " " + message.text}
     )
-    llm_response = llm_response.json()
 
-    logger.info("Sending a reply for query %s", preview(message.text))
-    markdown_content = telegramify_markdown.markdownify(llm_response["answer"])
+    if not response.ok:
+        raise Exception(
+            "Failed to search from message id %s! [%s]: %s",
+            update.effective_message.message_id, response.status_code, response.text
+        )
+
+    completion = response.json()
+
+    logger.info("Replying for message id %s", message.message_id)
+    markdown_content = telegramify_markdown.markdownify(completion["answer"])
     await message.reply_markdown_v2(markdown_content, reply_to_message_id=message.message_id)
 
 

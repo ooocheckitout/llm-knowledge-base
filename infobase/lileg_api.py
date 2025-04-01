@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pydantic import BaseModel
 
 from infobase.lileg_agent import graph, vector_store, PromptState
@@ -32,7 +33,7 @@ class Completion(BaseModel):
 
 
 class Information(BaseModel):
-    text: str
+    content: str
     metadata: dict[str, str]
 
 
@@ -63,6 +64,24 @@ async def complete(user_id: str, chat_id: str, prompt: Prompt) -> Completion:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def split_documents(documents: list[Document]) -> list[Document]:
+    # Telegram has a maximum message length of 4096 characters.
+    # The GPT-3.5-turbo context window is 4096 tokens.
+    # The token is around 4 characters.
+    # We want to allow 4096 characters for a user prompt which is 1024 tokens.
+    # Additionally, we can provide 3072 tokens as prompt snippets for llm context.
+    # For example 12 snippents will result in 256 tokens or 1024 characters per snippet.
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1024,
+        chunk_overlap=100
+    )
+    return text_splitter.split_documents(documents)
+
+
+def to_documents(infos: list[Information], metadata: dict[str, str]) -> list[Document]:
+    return [Document(page_content=x.content, metadata=metadata | x.metadata) for x in infos]
+
+
 @app.post("/users/{user_id}/chats/{chat_id}/vectorize")
 async def vectorize(user_id: str, chat_id: str, infos: list[Information]) -> list[Identifiable]:
     try:
@@ -71,7 +90,8 @@ async def vectorize(user_id: str, chat_id: str, infos: list[Information]) -> lis
         internal_metadata = {
             "session_id": f"{user_id}-{chat_id}",
         }
-        documents = [Document(page_content=x.text, metadata=internal_metadata | x.metadata) for x in infos]
+        documents = to_documents(infos, internal_metadata)
+        documents = split_documents(documents)
 
         assert all("source" in x.metadata for x in infos)
         sources = [x.metadata["source"] for x in infos]
@@ -92,17 +112,17 @@ async def vectorize(user_id: str, chat_id: str, infos: list[Information]) -> lis
 
 
 @app.post("/users/{user_id}/chats/{chat_id}/similarity")
-async def vectorize(user_id: str, chat_id: str, search: SearchQuery) -> list[Embedding]:
+async def similarity(user_id: str, chat_id: str, search: SearchQuery) -> list[Embedding]:
     try:
         logger.info("Start similarity search")
 
-        combined_filter = {"session_id": f"{user_id}-{chat_id}"}
+        filter = {"session_id": f"{user_id}-{chat_id}"}
 
         if search.filter:
-            combined_filter = {"$and": [combined_filter, search.filter]}
+            filter = {"$and": [filter, search.filter]}
 
         documents = await vector_store.asimilarity_search(
-            query=search.query, k=search.n_results, filter=combined_filter
+            query=search.query, k=search.n_results, filter=filter
         )
 
         logger.info("Finish similarity search")
