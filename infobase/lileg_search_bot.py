@@ -62,12 +62,11 @@ async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
-    context = r"If the user doesn't have any context he should try messaging to @lileg\_db\_bot."
 
     logger.info("Prompting for message id %s", message.message_id)
     response = requests.post(
         f"http://localhost:8000/users/{user_id}/chats/{chat_id}/complete",
-        json={'question': context + " " + message.text}
+        json={'question': message.text}
     )
 
     if not response.ok:

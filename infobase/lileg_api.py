@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, UTC
 from typing import Optional
 
 import uvicorn
@@ -7,6 +8,7 @@ from fastapi import FastAPI, HTTPException
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langdetect import detect
 from pydantic import BaseModel
 
 from infobase.lileg_agent import graph, vector_store, PromptState
@@ -22,10 +24,14 @@ class Prompt(BaseModel):
     question: str
 
 
+class FilterQuery(BaseModel):
+    filter: dict[str, str]
+
+
 class SearchQuery(BaseModel):
     query: str
     n_results: int = 5
-    filter: Optional[dict[str, str]] = {"1": "1"}
+    filter: Optional[dict[str, str]] = None
 
 
 class Completion(BaseModel):
@@ -82,16 +88,34 @@ def to_documents(infos: list[Information], metadata: dict[str, str]) -> list[Doc
     return [Document(page_content=x.content, metadata=metadata | x.metadata) for x in infos]
 
 
-@app.post("/users/{user_id}/chats/{chat_id}/vectorize")
-async def vectorize(user_id: str, chat_id: str, infos: list[Information]) -> list[Identifiable]:
+def safe_detect_language(text: str):
+    language = "unknown"
     try:
-        logger.info("Start vectorization")
+        language = detect(text)
+    except Exception as ex:
+        # langdetect.lang_detect_exception.LangDetectException: No features in text.
+        logger.warning("Failed to detect language! %s", ex)
+
+    return language
+
+
+@app.post("/users/{user_id}/chats/{chat_id}/remember")
+async def remember(user_id: str, chat_id: str, infos: list[Information]) -> list[Identifiable]:
+    try:
+        logger.info("Start remembering")
+
+        assert all(info.content != "" for info in infos)
 
         internal_metadata = {
             "session_id": f"{user_id}-{chat_id}",
         }
         documents = to_documents(infos, internal_metadata)
         documents = split_documents(documents)
+
+        current_datetime_as_str = str(datetime.now(UTC))
+        for document in documents:
+            document.metadata["language"] = safe_detect_language(document.page_content)
+            document.metadata["ingested_on"] = current_datetime_as_str
 
         assert all("source" in x.metadata for x in infos)
         sources = [x.metadata["source"] for x in infos]
@@ -104,25 +128,51 @@ async def vectorize(user_id: str, chat_id: str, infos: list[Information]) -> lis
 
         ids = await vector_store.aadd_documents(documents)
 
-        logger.info("Finish vectorization")
+        logger.info("Finish remembering")
         return [Identifiable(id=x) for x in ids]
     except Exception as e:
         logger.error(e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/users/{user_id}/chats/{chat_id}/forgetAll")
+async def forget(user_id: str, chat_id: str):
+    try:
+        logger.info("Start forgetting all")
+
+        vector_store.delete(where={"session_id": f"{user_id}-{chat_id}"})
+
+        logger.info("Finish forgetting all")
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/users/{user_id}/chats/{chat_id}/forget")
+async def forget(user_id: str, chat_id: str, query: FilterQuery):
+    try:
+        logger.info("Start forgetting")
+
+        vector_store.delete(where={"$and": [{"session_id": f"{user_id}-{chat_id}"}, query.filter]})
+
+        logger.info("Finish forgetting")
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/users/{user_id}/chats/{chat_id}/similarity")
-async def similarity(user_id: str, chat_id: str, search: SearchQuery) -> list[Embedding]:
+async def similarity(user_id: str, chat_id: str, query: SearchQuery) -> list[Embedding]:
     try:
         logger.info("Start similarity search")
 
-        filter = {"session_id": f"{user_id}-{chat_id}"}
+        effective_filter = {"session_id": f"{user_id}-{chat_id}"}
 
-        if search.filter:
-            filter = {"$and": [filter, search.filter]}
+        if query.filter:
+            effective_filter = {"$and": [effective_filter, query.filter]}
 
         documents = await vector_store.asimilarity_search(
-            query=search.query, k=search.n_results, filter=filter
+            query=query.query, k=query.n_results, filter=effective_filter
         )
 
         logger.info("Finish similarity search")

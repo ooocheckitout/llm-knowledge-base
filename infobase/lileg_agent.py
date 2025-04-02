@@ -11,7 +11,6 @@ from langchain_chroma import Chroma
 from langchain_community.cache import SQLiteCache
 from langchain_community.llms.fake import FakeListLLM
 from langchain_core.chat_history import BaseChatMessageHistory, InMemoryChatMessageHistory
-from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -69,17 +68,27 @@ def get_message_history_by_session_id(session_id: str) -> BaseChatMessageHistory
 
 
 template = """
-You are a helpful assistant.
-Combine the chat history and follow up question into a standalone question:
-History: {history}
-Question: {question}
-Answer the standalone question based on the context.
-Context: {context}
+User Query:
+"{question}"
+
+Retrieved Context:
+{context}
+
+Conversation History:
+{history}
+
+Response Instruction:
+"Use the retrieved data to generate an accurate and contextually relevant response.
+Prioritize retrieved information over general knowledge.
+If multiple sources provide similar information, summarize and cite all relevant sources.
+If conflicting information appears, present all perspectives naturally.
+If no relevant data is found, acknowledge this and either request clarification or generate a response based on general knowledge.
+Use five sentences maximum and keep the response concise, factual, and structured."
+
+Response:
 """
 
 prompt = ChatPromptTemplate.from_template(template)
-
-chain = prompt | llm
 
 # embeddings = HuggingFaceEndpointEmbeddings(
 #     model="sentence-transformers/all-MiniLM-L6-v2",
@@ -108,7 +117,7 @@ def enrich_history(state: PromptState, config: RunnableConfig):
     session_id = config["configurable"]["session_id"]
     session_history = get_message_history_by_session_id(session_id)
 
-    history = "\n".join([x.content for x in session_history.messages])
+    history = "\n".join([f"{x.type}: \"{x.content}\"" for x in session_history.messages])
 
     return {"history": history}
 
@@ -121,13 +130,28 @@ def enrich_context(state: PromptState, config: RunnableConfig):
         k=12,
         filter={"session_id": config["configurable"]["session_id"]},
     )
-    context = "\n".join([x.page_content for x in documents])
-    return {"context": context}
+
+    context_template = """
+The source for the following context is {source_type} {source}:
+"{content}" 
+    """
+
+    context = "\n".join([
+        context_template
+        .replace("{content}", x.page_content)
+        .replace("{source_type}", x.metadata["source_type"])
+        .replace("{source}", x.metadata["source"])
+        for x in documents
+    ])
+
+    missing_context = r"No context is available. Try adding more information to @lileg_db_bot."
+    return {"context": context or missing_context}
 
 
 def chatbot(state: PromptState, config: RunnableConfig):
     print(chatbot.__name__, state)
 
+    chain = prompt | llm
     completion = chain.invoke({**state}, config)
 
     return {"answer": completion.content}
@@ -162,7 +186,7 @@ if __name__ == "__main__":
     vector_store = vector_store.from_texts(["My surname is Solomoichenko"], cached_embedder)
 
     graph.invoke(
-        PromptState(question="What is my full name?", history="", context="", answer=""),
+        PromptState(question="What is my fullname?", history="", context="", answer=""),
         RunnableConfig(configurable={"session_id": "1"}),
     )
     print(global_state["sessions"]["1"])
