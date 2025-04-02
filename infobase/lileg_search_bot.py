@@ -4,8 +4,9 @@ import os
 import requests
 import telegramify_markdown
 from dotenv import load_dotenv
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, CallbackContext
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, CallbackContext, \
+    CallbackQueryHandler
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -79,7 +80,34 @@ async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
     logger.info("Replying for message id %s", message.message_id)
     markdown_content = telegramify_markdown.markdownify(completion["answer"])
-    await message.reply_markdown_v2(markdown_content, reply_to_message_id=message.message_id)
+
+    keyboard_markup = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("Good response", callback_data=f"good:{message.message_id}"),
+            InlineKeyboardButton("Bad response", callback_data=f"bad:{message.message_id}"),
+        ],
+    ])
+
+    await message.reply_markdown_v2(
+        markdown_content,
+        reply_to_message_id=message.message_id,
+        reply_markup=keyboard_markup,
+    )
+
+
+async def keyboard_callback(update: Update, _: CallbackContext) -> None:
+    query = update.callback_query
+
+    logger.info("Received Keyboard callback %s", query.data)
+
+    command, message_id = query.data.split(":")
+    if command == "good" or command == "bad":
+        logger.info("User review for message %s", message_id)
+
+        await query.answer(f"User review '{command}' was saved!")
+        await query.edit_message_reply_markup(reply_markup=None)
+    else:
+        await query.answer(f"Not supported!")
 
 
 def error_handler(update: Update, context: CallbackContext) -> None:
@@ -92,6 +120,7 @@ app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", welcome))
 app.add_handler(CommandHandler("similarity", similarity_search))
 app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), search_llm))
+app.add_handler(CallbackQueryHandler(keyboard_callback))
 app.add_error_handler(error_handler)
 
 app.run_polling()
