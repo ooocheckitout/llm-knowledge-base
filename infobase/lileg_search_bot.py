@@ -4,9 +4,12 @@ import os
 import requests
 import telegramify_markdown
 from dotenv import load_dotenv
+from langchain_chroma import Chroma
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, CallbackContext, \
     CallbackQueryHandler
+
+from infobase.lileg_agent import cached_embedder
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,32 +31,24 @@ async def welcome(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def similarity_search(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
+    user = update.effective_user
 
     logger.info("Searching for message id %s", message.message_id)
 
-    user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
-
-    response = requests.post(
-        f'http://localhost:8000/users/{user_id}/chats/{chat_id}/similarity',
-        json={'query': message.text, 'n_results': 12}
+    vector_store = Chroma(
+        collection_name=str(user.id),
+        embedding_function=cached_embedder,
+        persist_directory=".chroma",
     )
-
-    if not response.ok:
-        raise Exception(
-            "Failed to search from message id %s! [%s]: %s",
-            update.effective_message.message_id, response.status_code, response.text
-        )
+    documents = vector_store.similarity_search(query=message.text, k=12)
 
     logger.info("Replying for message id %s", message.message_id)
 
-    embeddings = response.json()
-
-    if not any(embeddings):
+    if not any(documents):
         await message.reply_text(f'No results found 😔', reply_to_message_id=message.message_id)
 
-    for embedding in embeddings:
-        await message.reply_text(embedding["content"], reply_to_message_id=message.message_id)
+    for document in documents:
+        await message.reply_text(document.page_content, reply_to_message_id=message.message_id)
 
 
 async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:

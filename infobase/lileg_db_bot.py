@@ -14,6 +14,8 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, Message
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, \
     CallbackQueryHandler, CallbackContext
 
+from infobase.lileg_agent import cached_embedder
+
 # configure_logging(os.path.basename(__file__))
 
 logging.basicConfig(level=logging.INFO)
@@ -21,8 +23,6 @@ logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 load_dotenv()
-
-from lileg_agent import cached_embedder
 
 
 async def welcome(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
