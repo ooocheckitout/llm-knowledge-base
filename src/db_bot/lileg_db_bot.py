@@ -227,7 +227,7 @@ class EnsureSingleEntity(filters.Entity):
         return message.entities and all(entity.type == self.entity_type for entity in message.entities)
 
 
-app = ApplicationBuilder().token(os.getenv('TELEGRAM_DB_BOT_TOKEN')).build()
+app = ApplicationBuilder().token(os.getenv('TELEGRAM_BOT_TOKEN')).build()
 
 app.add_handler(CommandHandler("start", welcome))
 app.add_handler(CommandHandler("clear", clear))

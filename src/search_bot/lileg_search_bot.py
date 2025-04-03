@@ -1,21 +1,92 @@
 import logging.handlers
 import os
+from typing import Optional, TypedDict
 
 import telegramify_markdown
 from dotenv import load_dotenv
+from langchain.embeddings import CacheBackedEmbeddings
+from langchain.storage import LocalFileStore
 from langchain_chroma import Chroma
+from langchain_core.chat_history import BaseChatMessageHistory, InMemoryChatMessageHistory
 from langchain_core.documents import Document
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_openai import ChatOpenAI
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, CallbackContext, \
     CallbackQueryHandler
-
-from lileg_agent import cached_embedder, prompt, llm, get_message_history_by_session_id
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 load_dotenv()
+
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2",
+    model_kwargs={'device': 'cpu'},
+    encode_kwargs={'normalize_embeddings': False}
+)
+
+cached_embedder = CacheBackedEmbeddings.from_bytes_store(
+    embeddings, LocalFileStore("/home/honor/Projects/llm-knowledge-base/src/.cached_embeddings"),
+    namespace=embeddings.model_name
+)
+
+
+class ChatOpenRouter(ChatOpenAI):
+    def __init__(self,
+                 model: str,
+                 api_key: Optional[str] = None,
+                 base_url: str = "https://openrouter.ai/api/v1",
+                 **kwargs):
+        api_key = api_key or os.getenv('OPENROUTER_API_KEY')
+        super().__init__(base_url=base_url, api_key=api_key, model=model, **kwargs)
+
+
+llm = ChatOpenRouter(
+    model="deepseek/deepseek-chat-v3-0324:free",
+    temperature=0.3,
+    max_completion_tokens=1024,
+)
+
+
+class GlobalState(TypedDict):
+    sessions: dict[str, InMemoryChatMessageHistory]
+
+
+global_state = GlobalState(sessions={})
+
+
+def get_message_history_by_session_id(session_id: str) -> BaseChatMessageHistory:
+    if session_id not in global_state["sessions"]:
+        global_state["sessions"][session_id] = InMemoryChatMessageHistory()
+
+    return global_state["sessions"][session_id]
+
+
+template = """
+User Query:
+"{question}"
+
+Retrieved Context:
+{context}
+
+Conversation History:
+{history}
+
+Response Instruction:
+"Use the retrieved data to generate an accurate and contextually relevant response.
+Prioritize retrieved information over general knowledge.
+If multiple sources provide similar information, summarize and cite all relevant sources.
+If conflicting information appears, present all perspectives naturally.
+If no relevant data is found, acknowledge this and either request clarification or generate a response based on general knowledge.
+Use three sentences maximum and keep the response concise, factual, and structured."
+
+Response:
+"""
+
+prompt = ChatPromptTemplate.from_template(template)
 
 
 async def welcome(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -123,8 +194,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     logger.warning(f'Update "{update}" caused error "{context.error}"')
 
 
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_SEARCH_BOT_TOKEN')
-app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
+app = ApplicationBuilder().token(os.getenv('TELEGRAM_BOT_TOKEN')).build()
 
 app.add_handler(CommandHandler("start", welcome))
 app.add_handler(CommandHandler("similarity", search))
