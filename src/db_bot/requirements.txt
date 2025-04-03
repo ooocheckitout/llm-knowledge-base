@@ -1,0 +1,14 @@
+python-dotenv
+
+python-telegram-bot
+telegramify-markdown
+
+langchain
+langchain-huggingface
+langchain-text-splitters
+langchain-chroma
+langchain-openai
+langchain-community
+
+langsmith
+langgraph

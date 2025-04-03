@@ -5,23 +5,32 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain.docstore.document import Document
+from langchain.embeddings import CacheBackedEmbeddings
+from langchain.storage import LocalFileStore
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PlaywrightURLLoader, PyPDFLoader
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langdetect import detect
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, Message, User
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, \
     CallbackQueryHandler, CallbackContext
 
-from infobase.lileg_agent import cached_embedder
-
-# configure_logging(os.path.basename(__file__))
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 load_dotenv()
+
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2",
+    model_kwargs={'device': 'cpu'},
+    encode_kwargs={'normalize_embeddings': False}
+)
+
+cached_embedder = CacheBackedEmbeddings.from_bytes_store(
+    embeddings, LocalFileStore("/home/honor/Projects/llm-knowledge-base/src/.cached_embeddings"), namespace=embeddings.model_name
+)
 
 
 async def welcome(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -51,7 +60,7 @@ async def clear(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     vector_store = Chroma(
         collection_name=str(message.chat_id),
         embedding_function=cached_embedder,
-        persist_directory=".chroma",
+        persist_directory="/home/honor/Projects/llm-knowledge-base/src/.chroma",
     )
     vector_store.reset_collection()
 
@@ -117,7 +126,7 @@ async def ingest_internal(user: User, message: Message, documents: list[Document
     vector_store = Chroma(
         collection_name=str(message.chat_id),
         embedding_function=cached_embedder,
-        persist_directory=".chroma",
+        persist_directory="/home/honor/Projects/llm-knowledge-base/src/.chroma",
     )
 
     logger.info("Removing existing documents %s", message_id_as_str)
@@ -146,7 +155,6 @@ async def ingest_text(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def ingest_url(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
-    user = update.effective_user
 
     logger.info("Start indexing url from message id %s", message.message_id)
 
@@ -198,7 +206,7 @@ async def keyboard_callback(update: Update, _: CallbackContext) -> None:
         vector_store = Chroma(
             collection_name=str(query.message.chat.id),
             embedding_function=cached_embedder,
-            persist_directory=".chroma",
+            persist_directory="/home/honor/Projects/llm-knowledge-base/src/.chroma",
         )
         vector_store.delete(where={"message_id": message_id})
 
@@ -208,8 +216,10 @@ async def keyboard_callback(update: Update, _: CallbackContext) -> None:
         await query.answer(f"Not supported!")
 
 
-async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    logger.warning(f'Update "{update}" caused error "{context.error}"')
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.warning(
+        f'Update "{update}" caused error "{context.error}"'
+    )
 
 
 class EnsureSingleEntity(filters.Entity):
@@ -217,8 +227,7 @@ class EnsureSingleEntity(filters.Entity):
         return message.entities and all(entity.type == self.entity_type for entity in message.entities)
 
 
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_DB_BOT_TOKEN')
-app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
+app = ApplicationBuilder().token(os.getenv('TELEGRAM_DB_BOT_TOKEN')).build()
 
 app.add_handler(CommandHandler("start", welcome))
 app.add_handler(CommandHandler("clear", clear))

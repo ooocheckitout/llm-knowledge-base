@@ -9,7 +9,7 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, CallbackContext, \
     CallbackQueryHandler
 
-from infobase.lileg_agent import cached_embedder, prompt, llm, get_message_history_by_session_id
+from lileg_agent import cached_embedder, prompt, llm, get_message_history_by_session_id
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ async def similarity_search(collection_name: str, query: str, n_results: int) ->
     vector_store = Chroma(
         collection_name=collection_name,
         embedding_function=cached_embedder,
-        persist_directory=".chroma",
+        persist_directory="/home/honor/Projects/llm-knowledge-base/src/.chroma",
     )
     return await vector_store.asimilarity_search(query=query, k=n_results)
 

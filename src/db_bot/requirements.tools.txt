@@ -1,0 +1,18 @@
+langdetect
+
+pypdf
+playwright
+unstructured
+
+# fastapi
+# poppler-utils
+# python 3.13 not compatible
+# tesseract-ocr
+# pygraphviz
+#
+
+# matplotlib
+# PyQt6
+# jupyterlab
+# tqdm
+# aiohttp

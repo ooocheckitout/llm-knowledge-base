@@ -102,12 +102,12 @@ embeddings = HuggingFaceEmbeddings(
 )
 
 cached_embedder = CacheBackedEmbeddings.from_bytes_store(
-    embeddings, LocalFileStore(".cached_embeddings"), namespace=embeddings.model_name
+    embeddings, LocalFileStore("/home/honor/Projects/llm-knowledge-base/src/.cached_embeddings"), namespace=embeddings.model_name
 )
 
 vector_store = Chroma(
     embedding_function=cached_embedder,
-    persist_directory=".chroma",
+    persist_directory="/home/honor/Projects/llm-knowledge-base/src/.chroma",
 )
 
 
@@ -175,7 +175,7 @@ builder.add_sequence([enrich_history, enrich_context, chatbot, save_history])
 graph = builder.compile()
 
 if __name__ == "__main__":
-    set_llm_cache(SQLiteCache(database_path=".cached_completions"))
+    set_llm_cache(SQLiteCache(database_path="/home/honor/Projects/llm-knowledge-base/src/.cached_completions"))
 
     graph.invoke(
         PromptState(question="My name is Oleh.", history="", context="", answer=""),
@@ -191,4 +191,4 @@ if __name__ == "__main__":
     )
     print(global_state["sessions"]["1"])
 
-set_llm_cache(SQLiteCache(database_path=".cached_completions"))
+set_llm_cache(SQLiteCache(database_path="/home/honor/Projects/llm-knowledge-base/src/.cached_completions"))

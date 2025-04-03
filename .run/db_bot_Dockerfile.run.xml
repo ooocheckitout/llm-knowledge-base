@@ -1,0 +1,22 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="db_bot/Dockerfile" type="docker-deploy" factoryName="dockerfile" server-name="Docker">
+    <deployment type="dockerfile">
+      <settings>
+        <option name="imageTag" value="bitspire" />
+        <option name="buildCliOptions" value="--platform linux/amd64,linux/arm64" />
+        <option name="containerName" value="bitspire" />
+        <option name="sourceFilePath" value="src/db_bot/Dockerfile" />
+        <option name="volumeBindings">
+          <list>
+            <DockerVolumeBindingImpl>
+              <option name="containerPath" value="/usr/app/.env" />
+              <option name="hostPath" value="$PROJECT_DIR$/src/db_bot/.env" />
+              <option name="readOnly" value="true" />
+            </DockerVolumeBindingImpl>
+          </list>
+        </option>
+      </settings>
+    </deployment>
+    <method v="2" />
+  </configuration>
+</component>
