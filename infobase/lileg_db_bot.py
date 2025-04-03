@@ -164,7 +164,6 @@ async def ingest_url(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def ingest_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
-    user = update.effective_user
 
     logger.info("Start indexing file from message id %s", message.message_id)
 
@@ -197,7 +196,7 @@ async def keyboard_callback(update: Update, _: CallbackContext) -> None:
         logger.info("Deleting message %s", message_id)
 
         vector_store = Chroma(
-            collection_name=str(message.chat_id),
+            collection_name=str(query.message.chat.id),
             embedding_function=cached_embedder,
             persist_directory=".chroma",
         )
