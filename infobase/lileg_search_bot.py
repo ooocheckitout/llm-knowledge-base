@@ -1,15 +1,15 @@
 import logging.handlers
 import os
 
-import requests
 import telegramify_markdown
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
+from langchain_core.documents import Document
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, CallbackContext, \
     CallbackQueryHandler
 
-from infobase.lileg_agent import cached_embedder
+from infobase.lileg_agent import cached_embedder, prompt, llm, get_message_history_by_session_id
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,21 +29,22 @@ async def welcome(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
-async def similarity_search(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    message = update.effective_message
-    user = update.effective_user
-
-    logger.info("Searching for message id %s", message.message_id)
-
+async def similarity_search(collection_name: str, query: str, n_results: int) -> list[Document]:
     vector_store = Chroma(
-        collection_name=str(user.id),
+        collection_name=collection_name,
         embedding_function=cached_embedder,
         persist_directory=".chroma",
     )
-    documents = vector_store.similarity_search(query=message.text, k=12)
+    return await vector_store.asimilarity_search(query=query, k=n_results)
+
+
+async def search(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    message = update.effective_message
+
+    logger.info("Searching for message id %s", message.message_id)
+    documents = await similarity_search(str(message.chat_id), message.text, 3)
 
     logger.info("Replying for message id %s", message.message_id)
-
     if not any(documents):
         await message.reply_text(f'No results found 😔', reply_to_message_id=message.message_id)
 
@@ -56,25 +57,38 @@ async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
     logger.info("Searching for message id %s", message.message_id)
 
-    user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
+    documents = await similarity_search(str(message.chat_id), message.text, 12)
+
+    logger.info("Enriching context for message id %s", message.message_id)
+
+    context_template = """
+The source for the following context is {source_type} {source}:
+"{content}" 
+        """
+
+    context = "\n".join([
+        context_template
+        .replace("{content}", x.page_content)
+        .replace("{source_type}", x.metadata["source_type"])
+        .replace("{source}", x.metadata["source"])
+        for x in documents
+    ])
+    missing_context = r"No context is available. Try adding more information to @lileg_db_bot."
+
+    logger.info("Enriching history for message id %s", message.message_id)
+    session_history = get_message_history_by_session_id(str(message.chat_id))
+    history = "\n".join([f"{x.type}: \"{x.content}\"" for x in session_history.messages])
 
     logger.info("Prompting for message id %s", message.message_id)
-    response = requests.post(
-        f"http://localhost:8000/users/{user_id}/chats/{chat_id}/complete",
-        json={'question': message.text}
-    )
+    chain = prompt | llm
+    completion = chain.invoke({"question": message.text, "history": history, "context": context or missing_context})
 
-    if not response.ok:
-        raise Exception(
-            "Failed to search from message id %s! [%s]: %s",
-            update.effective_message.message_id, response.status_code, response.text
-        )
-
-    completion = response.json()
+    logger.info("Saving history for message id %s", message.message_id)
+    session_history.add_user_message(message.text)
+    session_history.add_ai_message(completion.content)
 
     logger.info("Replying for message id %s", message.message_id)
-    markdown_content = telegramify_markdown.markdownify(completion["answer"])
+    markdown_content = telegramify_markdown.markdownify(completion.content)
 
     keyboard_markup = InlineKeyboardMarkup([
         [
@@ -105,7 +119,7 @@ async def keyboard_callback(update: Update, _: CallbackContext) -> None:
         await query.answer(f"Not supported!")
 
 
-def error_handler(update: Update, context: CallbackContext) -> None:
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.warning(f'Update "{update}" caused error "{context.error}"')
 
 
@@ -113,7 +127,7 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_SEARCH_BOT_TOKEN')
 app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", welcome))
-app.add_handler(CommandHandler("similarity", similarity_search))
+app.add_handler(CommandHandler("similarity", search))
 app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), search_llm))
 app.add_handler(CallbackQueryHandler(keyboard_callback))
 app.add_error_handler(error_handler)

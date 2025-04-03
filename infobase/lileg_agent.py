@@ -83,7 +83,7 @@ Prioritize retrieved information over general knowledge.
 If multiple sources provide similar information, summarize and cite all relevant sources.
 If conflicting information appears, present all perspectives naturally.
 If no relevant data is found, acknowledge this and either request clarification or generate a response based on general knowledge.
-Use five sentences maximum and keep the response concise, factual, and structured."
+Use three sentences maximum and keep the response concise, factual, and structured."
 
 Response:
 """

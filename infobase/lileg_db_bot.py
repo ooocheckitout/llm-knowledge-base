@@ -3,7 +3,6 @@ import os
 from datetime import datetime, UTC
 from pathlib import Path
 
-import requests
 from dotenv import load_dotenv
 from langchain.docstore.document import Document
 from langchain_chroma import Chroma
@@ -49,18 +48,12 @@ async def clear(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
     logger.info("Removing existing messages from message id %s", message.message_id)
 
-    user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
-
-    response = requests.post(
-        f'http://localhost:8000/users/{user_id}/chats/{chat_id}/forgetAll',
+    vector_store = Chroma(
+        collection_name=str(message.chat_id),
+        embedding_function=cached_embedder,
+        persist_directory=".chroma",
     )
-
-    if not response.ok:
-        raise Exception(
-            "Failed to forget all from message id %s! [%s]: %s",
-            message.message_id, response.status_code, response.text
-        )
+    vector_store.reset_collection()
 
     await update.effective_message.reply_text(
         f"Your data have been removed from the database!",
@@ -68,13 +61,13 @@ async def clear(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
-async def reply_message(user: User, message: Message):
+async def reply_message(message: Message):
     keyboard_markup = InlineKeyboardMarkup([
         [InlineKeyboardButton("Delete", callback_data=f"delete:{message.message_id}"), ],
     ])
 
     await message.reply_text(
-        f'Message ({message.message_id}) was successfully ingested to the user collection ({user.id})',
+        f'Message ({message.message_id}) was successfully ingested to the user collection ({message.chat_id})',
         reply_to_message_id=message.message_id,
         reply_markup=keyboard_markup,
     )
@@ -122,7 +115,7 @@ async def ingest_internal(user: User, message: Message, documents: list[Document
         document.metadata["ingested_on"] = current_datetime_as_str
 
     vector_store = Chroma(
-        collection_name=str(user.id),
+        collection_name=str(message.chat_id),
         embedding_function=cached_embedder,
         persist_directory=".chroma",
     )
@@ -148,7 +141,7 @@ async def ingest_text(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
     logger.info("Finish indexing text from message id %s", message.message_id)
 
-    await reply_message(user, message)
+    await reply_message(message)
 
 
 async def ingest_url(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -166,7 +159,7 @@ async def ingest_url(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
     logger.info("Finish indexing url from message id %s", message.message_id)
 
-    await reply_message(user, message)
+    await reply_message(message)
 
 
 async def ingest_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -191,7 +184,7 @@ async def ingest_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     logger.info("Finish indexing file from message id %s", message.message_id)
 
-    await reply_message(user, message)
+    await reply_message(message)
 
 
 async def keyboard_callback(update: Update, _: CallbackContext) -> None:
@@ -203,19 +196,12 @@ async def keyboard_callback(update: Update, _: CallbackContext) -> None:
     if command == "delete":
         logger.info("Deleting message %s", message_id)
 
-        user_id = update.effective_user.id
-        chat_id = update.effective_chat.id
-
-        response = requests.post(
-            f'http://localhost:8000/users/{user_id}/chats/{chat_id}/forget',
-            json={"filter": {"message_id": message_id}}
+        vector_store = Chroma(
+            collection_name=str(message.chat_id),
+            embedding_function=cached_embedder,
+            persist_directory=".chroma",
         )
-
-        if not response.ok:
-            raise Exception(
-                "Failed to forget all from message id %s! [%s]: %s",
-                message_id, response.status_code, response.text
-            )
+        vector_store.delete(where={"message_id": message_id})
 
         await query.answer(f"Message {message_id} deleted!")
         await query.delete_message()
