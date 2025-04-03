@@ -1,11 +1,15 @@
 import logging.handlers
 import os
+from datetime import datetime, UTC
 from pathlib import Path
 
 import requests
 from dotenv import load_dotenv
 from langchain.docstore.document import Document
+from langchain_chroma import Chroma
 from langchain_community.document_loaders import PlaywrightURLLoader, PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langdetect import detect
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, Message, User
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, \
     CallbackQueryHandler, CallbackContext
@@ -17,6 +21,8 @@ logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 load_dotenv()
+
+from lileg_agent import cached_embedder
 
 
 async def welcome(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -62,7 +68,7 @@ async def clear(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
-async def reply_message(message: Message, user: User):
+async def reply_message(user: User, message: Message):
     keyboard_markup = InlineKeyboardMarkup([
         [InlineKeyboardButton("Delete", callback_data=f"delete:{message.message_id}"), ],
     ])
@@ -74,53 +80,80 @@ async def reply_message(message: Message, user: User):
     )
 
 
-def enrich_metadata(documents: list[Document], message: Message, metadata: dict[str, str]) -> list[Document]:
-    logger.info("Enhancing document metadata from message id %s", message.message_id)
-    message_metadata = metadata | {
-        "message_id": str(message.message_id),
-        "message_date": str(message.date),
-    }
+def split_documents(documents: list[Document]) -> list[Document]:
+    # Telegram has a maximum message length of 4096 characters.
+    # The GPT-3.5-turbo context window is 4096 tokens.
+    # The token is around 4 characters.
+    # We want to allow 4096 characters for a user prompt which is 1024 tokens.
+    # Additionally, we can provide 3072 tokens as prompt snippets for llm context.
+    # For example 12 snippets will result in 256 tokens or 1024 characters per snippet.
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1024,
+        chunk_overlap=100
+    )
+    return text_splitter.split_documents(documents)
 
+
+def safe_detect_language(text: str):
+    language = "unknown"
+    try:
+        language = detect(text)
+    except Exception as ex:
+        # langdetect.lang_detect_exception.LangDetectException: No features in text.
+        logger.warning("Failed to detect language! %s", ex)
+
+    return language
+
+
+async def ingest_internal(user: User, message: Message, documents: list[Document]):
+    assert all(info.page_content != "" for info in documents)
+
+    message_id_as_str = str(message.message_id)
+
+    logger.info("Splitting documents %s", message_id_as_str)
+    documents = split_documents(documents)
+
+    current_datetime_as_str = str(datetime.now(UTC))
     for document in documents:
-        document.metadata.update(message_metadata)
+        document.metadata["message_id"] = message_id_as_str
+        document.metadata["message_date"] = str(message.date)
 
-        for k, v in document.metadata.items():
-            if not isinstance(v, str):
-                document.metadata[k] = str(v)
+        document.metadata["language"] = safe_detect_language(document.page_content)
+        document.metadata["ingested_on"] = current_datetime_as_str
 
-    return documents
+    vector_store = Chroma(
+        collection_name=str(user.id),
+        embedding_function=cached_embedder,
+        persist_directory=".chroma",
+    )
+
+    logger.info("Removing existing documents %s", message_id_as_str)
+    vector_store.delete(where={"message_id": message_id_as_str})
+
+    logger.info("Writing documents %s", message_id_as_str)
+    await vector_store.aadd_documents(documents)
 
 
 async def ingest_text(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
+    user = update.effective_user
 
     logger.info("Start indexing text from message id %s", message.message_id)
-
-    user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
 
     documents = [
         Document(page_content=message.text, metadata={"source": str(message.message_id)})
     ]
-    documents = enrich_metadata(documents, message, {"source_type": "message"})
-    response = requests.post(
-        f'http://localhost:8000/users/{user_id}/chats/{chat_id}/remember',
-        json=[{"content": x.page_content, "metadata": x.metadata} for x in documents]
-    )
-
-    if not response.ok:
-        raise Exception(
-            "Failed to remember from message id %s! [%s]: %s",
-            message.message_id, response.status_code, response.text
-        )
+    [x.metadata.update({"source_type": "message"}) for x in documents]
+    await ingest_internal(user, message, documents)
 
     logger.info("Finish indexing text from message id %s", message.message_id)
 
-    await reply_message(message, update.effective_user)
+    await reply_message(user, message)
 
 
 async def ingest_url(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
+    user = update.effective_user
 
     logger.info("Start indexing url from message id %s", message.message_id)
 
@@ -128,28 +161,17 @@ async def ingest_url(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         urls=message.text.splitlines(), remove_selectors=["header", "footer"]
     ).aload()
 
-    user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
-
-    documents = enrich_metadata(documents, message, {"source_type": "url"})
-    response = requests.post(
-        f'http://localhost:8000/users/{user_id}/chats/{chat_id}/remember',
-        json=[{"content": x.page_content, "metadata": x.metadata} for x in documents]
-    )
-
-    if not response.ok:
-        raise Exception(
-            "Failed to remember from message id %s! [%s]: %s",
-            message.message_id, response.status_code, response.text
-        )
+    [x.metadata.update({"source_type": "url"}) for x in documents]
+    await ingest_internal(update.effective_user, message, documents)
 
     logger.info("Finish indexing url from message id %s", message.message_id)
 
-    await reply_message(message, update.effective_user)
+    await reply_message(user, message)
 
 
 async def ingest_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
+    user = update.effective_user
 
     logger.info("Start indexing file from message id %s", message.message_id)
 
@@ -164,24 +186,12 @@ async def ingest_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     logger.info("Loading content from pdf %s", local_file_path)
     documents = await PyPDFLoader(local_file_path).aload()
 
-    user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
-
-    documents = enrich_metadata(documents, message, {"source_type": "file"})
-    response = requests.post(
-        f'http://localhost:8000/users/{user_id}/chats/{chat_id}/remember',
-        json=[{"content": x.page_content, "metadata": x.metadata} for x in documents]
-    )
-
-    if not response.ok:
-        raise Exception(
-            "Failed to remember from message id %s! [%s]: %s",
-            message.message_id, response.status_code, response.text
-        )
+    [x.metadata.update({"source_type": "file"}) for x in documents]
+    await ingest_internal(update.effective_user, message, documents)
 
     logger.info("Finish indexing file from message id %s", message.message_id)
 
-    await reply_message(message, update.effective_user)
+    await reply_message(user, message)
 
 
 async def keyboard_callback(update: Update, _: CallbackContext) -> None:
@@ -213,7 +223,7 @@ async def keyboard_callback(update: Update, _: CallbackContext) -> None:
         await query.answer(f"Not supported!")
 
 
-def error_handler(update: Update, context: CallbackContext) -> None:
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.warning(f'Update "{update}" caused error "{context.error}"')
 
 
