@@ -10,5 +10,5 @@ RUN pip3 install -r requirements.tools.txt
 RUN playwright install --with-deps
 
 COPY . .
-RUN chmod +x lileg_db_bot.py
-CMD ["python3", "lileg_db_bot.py"]
+RUN chmod +x main.py
+CMD ["python3", "main.py"]

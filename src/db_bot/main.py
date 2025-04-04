@@ -29,7 +29,7 @@ embeddings = HuggingFaceEmbeddings(
 )
 
 cached_embedder = CacheBackedEmbeddings.from_bytes_store(
-    embeddings, LocalFileStore("/home/honor/Projects/llm-knowledge-base/src/.cached_embeddings"), namespace=embeddings.model_name
+    embeddings, LocalFileStore(os.getenv('EMBEDDINGS_CACHE_DIR')), namespace=embeddings.model_name
 )
 
 
@@ -60,7 +60,7 @@ async def clear(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     vector_store = Chroma(
         collection_name=str(message.chat_id),
         embedding_function=cached_embedder,
-        persist_directory="/home/honor/Projects/llm-knowledge-base/src/.chroma",
+        persist_directory=os.getenv('CHROMA_PERSIST_DIR'),
     )
     vector_store.reset_collection()
 
@@ -126,7 +126,7 @@ async def ingest_internal(user: User, message: Message, documents: list[Document
     vector_store = Chroma(
         collection_name=str(message.chat_id),
         embedding_function=cached_embedder,
-        persist_directory="/home/honor/Projects/llm-knowledge-base/src/.chroma",
+        persist_directory=os.getenv('CHROMA_PERSIST_DIR'),
     )
 
     logger.info("Removing existing documents %s", message_id_as_str)
@@ -206,7 +206,7 @@ async def keyboard_callback(update: Update, _: CallbackContext) -> None:
         vector_store = Chroma(
             collection_name=str(query.message.chat.id),
             embedding_function=cached_embedder,
-            persist_directory="/home/honor/Projects/llm-knowledge-base/src/.chroma",
+            persist_directory=os.getenv('CHROMA_PERSIST_DIR'),
         )
         vector_store.delete(where={"message_id": message_id})
 

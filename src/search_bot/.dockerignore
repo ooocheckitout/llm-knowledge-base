@@ -4,7 +4,7 @@
 # Allow files and directories
 !/requirements.tools.txt
 !/requirements.txt
-!/lileg_search_bot.py
+!/main.py
 
 # Ignore unnecessary files inside allowed directories
 # This should go after the allowed directories

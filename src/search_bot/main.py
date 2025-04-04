@@ -29,7 +29,7 @@ embeddings = HuggingFaceEmbeddings(
 )
 
 cached_embedder = CacheBackedEmbeddings.from_bytes_store(
-    embeddings, LocalFileStore("/home/honor/Projects/llm-knowledge-base/src/.cached_embeddings"),
+    embeddings, LocalFileStore(os.getenv('EMBEDDINGS_CACHE_DIR')),
     namespace=embeddings.model_name
 )
 
@@ -104,7 +104,7 @@ async def similarity_search(collection_name: str, query: str, n_results: int) ->
     vector_store = Chroma(
         collection_name=collection_name,
         embedding_function=cached_embedder,
-        persist_directory="/home/honor/Projects/llm-knowledge-base/src/.chroma",
+        persist_directory=os.getenv('CHROMA_PERSIST_DIR'),
     )
     return await vector_store.asimilarity_search(query=query, k=n_results)
 

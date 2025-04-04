@@ -26,25 +26,3 @@ echo GITHUB_PAT_TOKEN | docker login ghcr.io -u solomoychenkoo@gmail.com --passw
 ```shell
 docker push ghcr.io/ooocheckitout/bitspire:latest
 ```
-
-# Chroma Database
-
-```shell
-docker run -it --rm --name chromadb -p 8000:8000 -v ./src/.chroma:/chroma/chroma -e IS_PERSISTENT=TRUE -e ANONYMIZED_TELEMETRY=TRUE chromadb/chroma
-```
-
-#  
-
-# Dozzle
-
-```shell
-docker run -it --rm --name dozzle -p 8080:8080 -v /run/user/1000/docker.sock:/var/run/docker.sock ghcr.io/amir20/dozzle:latest
-```
-
-# Grafana
-
-```shell
-docker run -id --rm -p 3000:3000 --name=grafana -v grafana_data:/var/lib/grafana grafana/grafana-oss
-#  -e "GF_SERVER_ROOT_URL=http://my.grafana.server/" \
-#  -e "GF_PLUGINS_PREINSTALL=grafana-clock-panel" \
-```

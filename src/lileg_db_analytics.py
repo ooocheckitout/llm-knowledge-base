@@ -20,7 +20,6 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # ENVIRONMENT VARIABLES
 load_dotenv()
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_SEARCH_BOT_TOKEN')
 
 # DATABASE AND EMBEDDINGS
 CHROMA_CLIENT = chromadb.PersistentClient(".chroma")
