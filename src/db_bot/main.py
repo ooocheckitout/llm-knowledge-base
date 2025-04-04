@@ -3,13 +3,14 @@ import os
 import sys
 from datetime import datetime, UTC
 from pathlib import Path
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 from langchain.docstore.document import Document
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
 from langchain_chroma import Chroma
-from langchain_community.document_loaders import PlaywrightURLLoader, PyPDFLoader
+from langchain_community.document_loaders import PlaywrightURLLoader, PyPDFLoader, YoutubeLoader
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langdetect import detect
@@ -159,12 +160,20 @@ async def ingest_url(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
     logger.info("Start indexing url from message id %s", message.message_id)
 
-    documents = await PlaywrightURLLoader(
-        urls=message.text.splitlines(), remove_selectors=["header", "footer"]
-    ).aload()
+    for url in message.text.splitlines():
+        parsed_url = urlparse(url)
 
-    [x.metadata.update({"source_type": "url"}) for x in documents]
-    await ingest_internal(update.effective_user, message, documents)
+        if parsed_url.netloc == "www.youtube.com":
+            documents = await YoutubeLoader.from_youtube_url(
+                youtube_url=url, add_video_info=True, language=["en", "id"],
+            ).aload()
+        else:
+            documents = await PlaywrightURLLoader(
+                urls=[url], remove_selectors=["header", "footer"]
+            ).aload()
+
+        [x.metadata.update({"source_type": "url"}) for x in documents]
+        await ingest_internal(update.effective_user, message, documents)
 
     logger.info("Finish indexing url from message id %s", message.message_id)
 

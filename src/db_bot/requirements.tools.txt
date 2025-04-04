@@ -4,6 +4,8 @@ pypdf
 playwright
 unstructured
 
+youtube-transcript-api
+
 # fastapi
 # poppler-utils
 # python 3.13 not compatible

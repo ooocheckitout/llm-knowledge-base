@@ -198,7 +198,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 app = ApplicationBuilder().token(os.getenv('TELEGRAM_BOT_TOKEN')).build()
 
 app.add_handler(CommandHandler("start", welcome))
-app.add_handler(CommandHandler("similarity", search))
+app.add_handler(CommandHandler("search", search))
 app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), search_llm))
 app.add_handler(CallbackQueryHandler(keyboard_callback))
 app.add_error_handler(error_handler)
