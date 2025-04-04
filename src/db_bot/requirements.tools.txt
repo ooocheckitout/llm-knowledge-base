@@ -4,7 +4,9 @@ pypdf
 playwright
 unstructured
 
-youtube-transcript-api
+# https://github.com/langchain-ai/langchain/issues/30309
+youtube-transcript-api==0.6.3
+pytube
 
 # fastapi
 # poppler-utils

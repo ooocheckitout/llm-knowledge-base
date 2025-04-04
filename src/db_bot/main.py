@@ -3,18 +3,17 @@ import os
 import sys
 from datetime import datetime, UTC
 from pathlib import Path
-from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 from langchain.docstore.document import Document
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
 from langchain_chroma import Chroma
-from langchain_community.document_loaders import PlaywrightURLLoader, PyPDFLoader, YoutubeLoader
+from langchain_community.document_loaders import PyPDFLoader, YoutubeLoader, PlaywrightURLLoader
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langdetect import detect
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, Message, User
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, Message
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, \
     CallbackQueryHandler, CallbackContext
 
@@ -80,7 +79,7 @@ async def reply_message(message: Message):
     await message.reply_text(
         f'Message ({message.message_id}) was successfully ingested to the user collection ({message.chat_id})',
         reply_to_message_id=message.message_id,
-        reply_markup=keyboard_markup,
+        reply_markup=keyboard_markup
     )
 
 
@@ -109,12 +108,16 @@ def safe_detect_language(text: str):
     return language
 
 
-async def ingest_internal(user: User, message: Message, documents: list[Document]):
-    assert all(info.page_content != "" for info in documents)
+async def ingest_internal(message: Message, documents: list[Document]):
+    documents = list(filter(lambda doc: doc.page_content != "", documents))
+
+    if not documents:
+        await message.reply_text(f'Nothing to ingest 😔', reply_to_message_id=message.message_id)
+        return
 
     message_id_as_str = str(message.message_id)
 
-    logger.info("Splitting documents %s", message_id_as_str)
+    logger.info("Splitting %s documents for message id %s", len(documents), message_id_as_str)
     documents = split_documents(documents)
 
     current_datetime_as_str = str(datetime.now(UTC))
@@ -131,16 +134,20 @@ async def ingest_internal(user: User, message: Message, documents: list[Document
         persist_directory=os.getenv('CHROMA_PERSIST_DIR'),
     )
 
-    logger.info("Removing existing documents %s", message_id_as_str)
+    logger.info("Removing existing documents in %s for message id %s", message.chat_id, message_id_as_str)
     vector_store.delete(where={"message_id": message_id_as_str})
 
-    logger.info("Writing documents %s", message_id_as_str)
+    logger.info(
+        "Writing %s documents in %s for message id %s", len(documents), message.chat_id, message_id_as_str
+    )
     await vector_store.aadd_documents(documents)
+
+    for document in documents:
+        await message.reply_text(document.page_content, reply_to_message_id=message.message_id)
 
 
 async def ingest_text(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
-    user = update.effective_user
 
     logger.info("Start indexing text from message id %s", message.message_id)
 
@@ -148,7 +155,7 @@ async def ingest_text(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         Document(page_content=message.text, metadata={"source": str(message.message_id)})
     ]
     [x.metadata.update({"source_type": "message"}) for x in documents]
-    await ingest_internal(user, message, documents)
+    await ingest_internal(message, documents)
 
     logger.info("Finish indexing text from message id %s", message.message_id)
 
@@ -160,20 +167,26 @@ async def ingest_url(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
     logger.info("Start indexing url from message id %s", message.message_id)
 
+    logger.info("Loading website url from message id %s", message.message_id)
+    documents = await PlaywrightURLLoader(
+        urls=message.text.splitlines(), remove_selectors=["header", "footer"]
+    ).aload()
+
     for url in message.text.splitlines():
-        parsed_url = urlparse(url)
-
-        if parsed_url.netloc == "www.youtube.com":
-            documents = await YoutubeLoader.from_youtube_url(
-                youtube_url=url, add_video_info=True, language=["en", "id"],
-            ).aload()
-        else:
-            documents = await PlaywrightURLLoader(
-                urls=[url], remove_selectors=["header", "footer"]
+        try:
+            logger.info("Loading youtube url from message id %s", message.message_id)
+            youtube_documents = await YoutubeLoader.from_youtube_url(
+                youtube_url=url, language=["en", "ru"]
             ).aload()
 
-        [x.metadata.update({"source_type": "url"}) for x in documents]
-        await ingest_internal(update.effective_user, message, documents)
+            documents.extend(youtube_documents)
+        except Exception as ex:
+            # transcription not available
+            logger.warning("Failed to load youtube url %s, %s", url, ex)
+
+    logger.info("Enhancing metadata url from message id %s", message.message_id)
+    [x.metadata.update({"source_type": "url"}) for x in documents]
+    await ingest_internal(message, documents)
 
     logger.info("Finish indexing url from message id %s", message.message_id)
 
@@ -197,7 +210,7 @@ async def ingest_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     documents = await PyPDFLoader(local_file_path).aload()
 
     [x.metadata.update({"source_type": "file"}) for x in documents]
-    await ingest_internal(update.effective_user, message, documents)
+    await ingest_internal(message, documents)
 
     logger.info("Finish indexing file from message id %s", message.message_id)
 

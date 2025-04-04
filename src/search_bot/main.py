@@ -113,7 +113,7 @@ async def similarity_search(collection_name: str, query: str, n_results: int) ->
 async def search(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
 
-    logger.info("Searching for message id %s", message.message_id)
+    logger.info("Searching in %s for message id %s", message.chat_id, message.message_id)
     documents = await similarity_search(str(message.chat_id), message.text, 3)
 
     logger.info("Replying for message id %s", message.message_id)
@@ -127,11 +127,11 @@ async def search(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
 
-    logger.info("Searching for message id %s", message.message_id)
+    logger.info("Searching in %s for message id %s", message.chat_id, message.message_id)
 
     documents = await similarity_search(str(message.chat_id), message.text, 12)
 
-    logger.info("Enriching context for message id %s", message.message_id)
+    logger.info("Enriching context with %s documents for message id %s", len(documents), message.message_id)
 
     context_template = """
 The source for the following context is {source_type} {source}:
@@ -147,8 +147,12 @@ The source for the following context is {source_type} {source}:
     ])
     missing_context = r"No context is available. Try adding more information to @lileg_db_bot."
 
-    logger.info("Enriching history for message id %s", message.message_id)
+    logger.info("Retrieving history for message id %s", message.message_id)
     session_history = get_message_history_by_session_id(str(message.chat_id))
+
+    logger.info(
+        "Enriching history with %s messages for message id %s", len(session_history.messages), message.message_id
+    )
     history = "\n".join([f"{x.type}: \"{x.content}\"" for x in session_history.messages])
 
     logger.info("Prompting for message id %s", message.message_id)
