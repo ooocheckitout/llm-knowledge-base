@@ -13,6 +13,7 @@ from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
+from langchain_ollama import ChatOllama
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, CallbackContext, \
     CallbackQueryHandler
@@ -49,6 +50,12 @@ llm = ChatOpenRouter(
     model="deepseek/deepseek-chat-v3-0324:free",
     temperature=0.3,
     max_completion_tokens=1024,
+)
+
+llm = ChatOllama(
+    model="phi4-mini:latest",
+    temperature=0,
+    base_url=os.getenv('OLLAMA_BASE_URL')
 )
 
 
