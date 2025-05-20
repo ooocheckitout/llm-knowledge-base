@@ -11,6 +11,7 @@ from langchain.storage import LocalFileStore
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader, YoutubeLoader, PlaywrightURLLoader
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langdetect import detect
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, Message
@@ -23,10 +24,16 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 load_dotenv()
 
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
-    model_kwargs={'device': 'cpu'},
-    encode_kwargs={'normalize_embeddings': False}
+# embeddings = HuggingFaceEmbeddings(
+#     model_name="sentence-transformers/all-MiniLM-L6-v2",
+#     model_kwargs={'device': 'cpu'},
+#     encode_kwargs={'normalize_embeddings': False}
+# )
+
+logger.info("Initializing OllamaEmbeddings")
+embeddings = OllamaEmbeddings(
+    model="all-minilm:l6-v2",
+    base_url=os.getenv('OLLAMA_BASE_URL')
 )
 
 cached_embedder = CacheBackedEmbeddings.from_bytes_store(

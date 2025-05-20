@@ -13,7 +13,7 @@ from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
-from langchain_ollama import ChatOllama
+from langchain_ollama import ChatOllama, OllamaEmbeddings
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, CallbackContext, \
     CallbackQueryHandler
@@ -25,11 +25,17 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger.info("Loading environment variables")
 load_dotenv()
 
-logger.info("Initializing HuggingFaceEmbeddings")
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
-    model_kwargs={'device': 'cpu'},
-    encode_kwargs={'normalize_embeddings': False}
+# logger.info("Initializing HuggingFaceEmbeddings")
+# embeddings = HuggingFaceEmbeddings(
+#     model_name="sentence-transformers/all-MiniLM-L6-v2",
+#     model_kwargs={'device': 'cpu'},
+#     encode_kwargs={'normalize_embeddings': False}
+# )
+
+logger.info("Initializing OllamaEmbeddings")
+embeddings = OllamaEmbeddings(
+    model="all-minilm:l6-v2",
+    base_url=os.getenv('OLLAMA_BASE_URL')
 )
 
 logger.info("Initializing CacheBackedEmbeddings")
@@ -49,12 +55,12 @@ class ChatOpenRouter(ChatOpenAI):
         super().__init__(base_url=base_url, api_key=api_key, model=model, **kwargs)
 
 
-logger.info("Initializing ChatOpenRouter")
-llm = ChatOpenRouter(
-    model="deepseek/deepseek-chat-v3-0324:free",
-    temperature=0.3,
-    max_completion_tokens=1024,
-)
+# logger.info("Initializing ChatOpenRouter")
+# llm = ChatOpenRouter(
+#     model="deepseek/deepseek-chat-v3-0324:free",
+#     temperature=0.3,
+#     max_completion_tokens=1024,
+# )
 
 logger.info("Initializing ChatOllama")
 llm = ChatOllama(
