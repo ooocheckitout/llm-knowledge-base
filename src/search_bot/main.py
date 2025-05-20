@@ -49,12 +49,14 @@ class ChatOpenRouter(ChatOpenAI):
         super().__init__(base_url=base_url, api_key=api_key, model=model, **kwargs)
 
 
+logger.info("Initializing ChatOpenRouter")
 llm = ChatOpenRouter(
     model="deepseek/deepseek-chat-v3-0324:free",
     temperature=0.3,
     max_completion_tokens=1024,
 )
 
+logger.info("Initializing ChatOllama")
 llm = ChatOllama(
     model="phi4-mini:latest",
     temperature=0,
