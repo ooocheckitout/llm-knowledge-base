@@ -257,7 +257,7 @@ class EnsureSingleEntity(filters.Entity):
         return message.entities and all(entity.type == self.entity_type for entity in message.entities)
 
 
-logger.info(f"Starting application (embeddings:{embeddings.__class__.__name__}; llm:{llm.__class__.__name__})")
+logger.info(f"Starting application (embeddings:{embeddings.__class__.__name__})")
 app = ApplicationBuilder().token(os.getenv('TELEGRAM_BOT_TOKEN')).build()
 
 app.add_handler(CommandHandler("start", welcome))
