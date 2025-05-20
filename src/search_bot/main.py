@@ -41,7 +41,7 @@ embeddings = OllamaEmbeddings(
 logger.info("Initializing CacheBackedEmbeddings")
 cached_embedder = CacheBackedEmbeddings.from_bytes_store(
     embeddings, LocalFileStore(os.getenv('EMBEDDINGS_CACHE_DIR')),
-    namespace=embeddings.model_name
+    namespace=embeddings.model
 )
 
 

@@ -37,7 +37,7 @@ embeddings = OllamaEmbeddings(
 )
 
 cached_embedder = CacheBackedEmbeddings.from_bytes_store(
-    embeddings, LocalFileStore(os.getenv('EMBEDDINGS_CACHE_DIR')), namespace=embeddings.model_name
+    embeddings, LocalFileStore(os.getenv('EMBEDDINGS_CACHE_DIR')), namespace=embeddings.model
 )
 
 
@@ -257,6 +257,7 @@ class EnsureSingleEntity(filters.Entity):
         return message.entities and all(entity.type == self.entity_type for entity in message.entities)
 
 
+logger.info(f"Starting application (embeddings:{embeddings.__class__.__name__}; llm:{llm.__class__.__name__})")
 app = ApplicationBuilder().token(os.getenv('TELEGRAM_BOT_TOKEN')).build()
 
 app.add_handler(CommandHandler("start", welcome))
@@ -267,4 +268,6 @@ app.add_handler(MessageHandler(filters.Document.ALL, ingest_file))
 app.add_handler(CallbackQueryHandler(keyboard_callback))
 app.add_error_handler(error_handler)
 
+logger.info("Waiting for requests")
 app.run_polling()
+logger.info("Shutting down application")
