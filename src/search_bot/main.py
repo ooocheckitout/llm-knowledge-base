@@ -22,14 +22,17 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
+logger.info("Loading environment variables")
 load_dotenv()
 
+logger.info("Initializing HuggingFaceEmbeddings")
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2",
     model_kwargs={'device': 'cpu'},
     encode_kwargs={'normalize_embeddings': False}
 )
 
+logger.info("Initializing CacheBackedEmbeddings")
 cached_embedder = CacheBackedEmbeddings.from_bytes_store(
     embeddings, LocalFileStore(os.getenv('EMBEDDINGS_CACHE_DIR')),
     namespace=embeddings.model_name
@@ -94,6 +97,7 @@ Use three sentences maximum and keep the response concise, factual, and structur
 Response:
 """
 
+logger.info("Initializing ChatPromptTemplate")
 prompt = ChatPromptTemplate.from_template(template)
 
 
@@ -206,6 +210,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     logger.warning(f'Update "{update}" caused error "{context.error}"')
 
 
+logger.info(f"Starting application (embeddings:{embeddings.__class__.__name__}; llm:{llm.__class__.__name__})")
 app = ApplicationBuilder().token(os.getenv('TELEGRAM_BOT_TOKEN')).build()
 
 app.add_handler(CommandHandler("start", welcome))
@@ -214,4 +219,6 @@ app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), search_llm))
 app.add_handler(CallbackQueryHandler(keyboard_callback))
 app.add_error_handler(error_handler)
 
+logger.info("Waiting for requests")
 app.run_polling()
+logger.info("Shutting down application")

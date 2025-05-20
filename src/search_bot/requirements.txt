@@ -8,6 +8,7 @@ langchain-huggingface
 langchain-text-splitters
 langchain-chroma
 langchain-openai
+langchain-ollama
 langchain-community
 
 langsmith
