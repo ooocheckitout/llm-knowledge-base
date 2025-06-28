@@ -4,6 +4,7 @@ import sys
 from dotenv import load_dotenv
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 
+
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -14,7 +15,8 @@ load_dotenv()
 from src.search_bot.commands.welcome import welcome
 from src.search_bot.handlers.keyboard import keyboard_callback
 from src.search_bot.handlers.error import error_handler
-from src.search_bot.commands.search import search, search_llm
+from src.search_bot.commands.search import search
+from src.search_bot.commands.search_llm import search_llm
 
 logger.info("Starting application")
 app = ApplicationBuilder().token(os.getenv('TELEGRAM_BOT_TOKEN')).build()
