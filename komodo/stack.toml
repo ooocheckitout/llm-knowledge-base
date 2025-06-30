@@ -5,4 +5,4 @@ deploy = true
 server = "worker-gpu"
 linked_repo = "llm-knowledge-base"
 run_directory = "docker"
-file_paths = ["ollama.yaml"]
+file_paths = ["ollama.yml"]
