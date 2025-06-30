@@ -1,0 +1,7 @@
+[[stack]]
+name = "ollama"
+deploy = true
+[stack.config]
+server = "worker-gpu"
+linked_repo = "llm-knowledge-base"
+file_paths = ["ollama.yaml"]

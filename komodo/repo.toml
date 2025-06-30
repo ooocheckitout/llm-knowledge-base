@@ -1,0 +1,10 @@
+[[repo]]
+name = "llm-knowledge-base"
+[repo.config]
+server = "master"
+builder = "local"
+git_account = "ooocheckitout"
+repo = "ooocheckitout/llm-knowledge-base"
+links = [
+  "https://github.com/ooocheckitout/llm-knowledge-base"
+]

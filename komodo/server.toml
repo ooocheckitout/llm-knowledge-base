@@ -1,5 +1,5 @@
 [[server]]
 name = "worker-gpu"
 [server.config]
-address = "http://ooocheckitout:8120"
+address = "https://ooocheckitout:8120"
 enabled = true
