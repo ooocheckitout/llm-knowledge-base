@@ -2,7 +2,7 @@
 name = "openwebui"
 deploy = true
 [stack.config]
-server = "worker-gpu"
+server = "master"
 project_name = "komodo"
 linked_repo = "llm-knowledge-base"
 run_directory = "docker"
