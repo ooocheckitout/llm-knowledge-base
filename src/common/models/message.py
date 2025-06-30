@@ -1,7 +1,7 @@
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.search_bot.models.base import Base
+from src.common.models.base import Base
 
 
 class Message(Base):

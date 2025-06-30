@@ -4,7 +4,7 @@ import os
 from langchain_chroma import Chroma
 from telegram import Document
 
-from src.search_bot.services.embedding import EmbeddingService
+from src.common.services.embedding import EmbeddingService
 
 logger = logging.getLogger(__name__)
 

@@ -30,8 +30,10 @@ class EmbeddingService:
     @staticmethod
     def cached(embeddings: Embeddings):
         logger.info(f"Initializing CacheBackedEmbeddings({os.getenv('EMBEDDINGS_CACHE_DIR')})")
+        model_name = hasattr(embeddings, "model") if embeddings.model else embeddings.model_name
+
         return CacheBackedEmbeddings.from_bytes_store(
-            embeddings, LocalFileStore(os.getenv('EMBEDDINGS_CACHE_DIR')), namespace=getattr(embeddings, 'model', embeddings.model_name)
+            embeddings, LocalFileStore(os.getenv('EMBEDDINGS_CACHE_DIR')), namespace=model_name
         )
 
     @staticmethod

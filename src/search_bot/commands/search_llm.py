@@ -7,7 +7,7 @@ from telegram.ext import ContextTypes
 from src.search_bot.commands.search import similarity_search
 from src.search_bot.constants.history import get_message_history_by_session_id
 from src.search_bot.constants.template import prompt
-from src.search_bot.services.chat import ChatService
+from src.common.services.chat import ChatService
 
 logger = logging.getLogger(__name__)
 
