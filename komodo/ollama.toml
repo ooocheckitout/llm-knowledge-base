@@ -4,6 +4,8 @@ deploy = true
 [stack.config]
 server = "worker-gpu"
 project_name = "komodo"
+poll_for_updates = true
+auto_update = true
 linked_repo = "llm-knowledge-base"
 run_directory = "docker"
 file_paths = ["ollama.yml"]
