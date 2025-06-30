@@ -29,11 +29,11 @@ class EmbeddingService:
 
     @staticmethod
     def cached(embeddings: Embeddings):
-        logger.info(f"Initializing CacheBackedEmbeddings({os.getenv('EMBEDDINGS_CACHE_DIR')})")
-        model_name = hasattr(embeddings, "model") if embeddings.model else embeddings.model_name
+        os.makedirs(os.getenv('EMBEDDINGS_CACHE_DIR'), exist_ok=True)
 
+        logger.info(f"Initializing CacheBackedEmbeddings({os.getenv('EMBEDDINGS_CACHE_DIR')}")
         return CacheBackedEmbeddings.from_bytes_store(
-            embeddings, LocalFileStore(os.getenv('EMBEDDINGS_CACHE_DIR')), namespace=model_name
+            embeddings, LocalFileStore(os.getenv('EMBEDDINGS_CACHE_DIR'))
         )
 
     @staticmethod
