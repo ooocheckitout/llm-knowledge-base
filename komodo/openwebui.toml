@@ -1,0 +1,9 @@
+[[stack]]
+name = "openwebui"
+deploy = true
+[stack.config]
+server = "worker-gpu"
+project_name = "komodo"
+linked_repo = "llm-knowledge-base"
+run_directory = "docker"
+file_paths = ["openwebui.yml"]
