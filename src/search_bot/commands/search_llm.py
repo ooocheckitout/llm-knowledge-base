@@ -5,11 +5,14 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from src.search_bot.commands.search import similarity_search
-from src.search_bot.constants.chat import llm
 from src.search_bot.constants.history import get_message_history_by_session_id
 from src.search_bot.constants.template import prompt
+from src.search_bot.services.chat import ChatService
 
 logger = logging.getLogger(__name__)
+
+
+chat_service = ChatService()
 
 async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
@@ -43,7 +46,7 @@ The source for the following context is {source_type} {source}:
     history = "\n".join([f"{x.type}: \"{x.content}\"" for x in session_history.messages])
 
     logger.info("Prompting for message id %s", message.message_id)
-    chain = prompt | llm
+    chain = prompt | chat_service.llm
     completion = chain.invoke({"question": message.text, "history": history, "context": context or missing_context})
 
     logger.info("Saving history for message id %s", message.message_id)
