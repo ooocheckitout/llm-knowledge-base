@@ -1,0 +1,9 @@
+[[build]]
+name = "llm-knowledge-base-db-search"
+[build.config]
+builder = "local"
+image_name = "ooocheckitout/db_search"
+linked_repo = "llm-knowledge-base"
+build_path = "src/db_search"
+image_registry.domain = "ghcr.io"
+image_registry.account = "ooocheckitout"

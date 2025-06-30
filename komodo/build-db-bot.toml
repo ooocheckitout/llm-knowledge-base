@@ -1,0 +1,9 @@
+[[build]]
+name = "llm-knowledge-base-db-bot"
+[build.config]
+builder = "local"
+image_name = "ooocheckitout/db_bot"
+linked_repo = "llm-knowledge-base"
+build_path = "src/db_bot"
+image_registry.domain = "ghcr.io"
+image_registry.account = "ooocheckitout"
