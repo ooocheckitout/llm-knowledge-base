@@ -29,8 +29,6 @@ class EmbeddingService:
 
     @staticmethod
     def cached(embeddings: Embeddings):
-        os.makedirs(os.getenv('EMBEDDINGS_CACHE_DIR'), exist_ok=True)
-
         logger.info(f"Initializing CacheBackedEmbeddings({os.getenv('EMBEDDINGS_CACHE_DIR')}")
         return CacheBackedEmbeddings.from_bytes_store(
             embeddings, LocalFileStore(os.getenv('EMBEDDINGS_CACHE_DIR'))

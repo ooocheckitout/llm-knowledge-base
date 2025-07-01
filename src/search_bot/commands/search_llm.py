@@ -33,7 +33,6 @@ async def search_llm(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     retriever = vector_store.as_retriever(search_kwargs={"k": 25})
 
     model = HuggingFaceCrossEncoder(model_name="BAAI/bge-reranker-base")
-    CrossEncoder
     compressor = CrossEncoderReranker(model=model, top_n=3)
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=retriever
