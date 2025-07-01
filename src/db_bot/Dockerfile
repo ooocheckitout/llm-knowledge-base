@@ -10,5 +10,5 @@ RUN pip3 install -r requirements.tools.txt
 RUN playwright install --with-deps
 
 COPY . .
-RUN chmod +x main.py
-CMD ["python3", "main.py"]
+RUN chmod +x src/db_bot/main.py
+CMD ["python3", "src/db_bot/main.py"]

@@ -5,5 +5,5 @@ COPY requirements.txt .
 RUN pip3 install -r requirements.txt
 
 COPY . .
-RUN chmod +x main.py
-CMD ["python3", "main.py"]
+RUN chmod +x src/search_bot/main.py
+CMD ["python3", "src/search_bot/main.py"]
