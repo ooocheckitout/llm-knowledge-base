@@ -1,2 +1,2 @@
-sqlalchemy
-sentence-transformers
+sqlalchemy==2.0.41
+sentence-transformers==4.1.0
