@@ -6,3 +6,16 @@ image.type = "Build"
 image.params.build = "llm-knowledge-base-db-bot"
 image_registry_account = "ooocheckitout"
 redeploy_on_build = true
+environment = """
+TELEGRAM_BOT_TOKEN=[[TELEGRAM_DB_BOT_TOKEN]]
+DB_CONNECTION_STRING=postgresql://[[POSTGRES_USER]]:[[POSTGRES_PASSWORD]]@ooocheckitout:15432/llm-knowledge-base
+
+CHROMA_PERSIST_DIR=/.chroma
+EMBEDDINGS_CACHE_DIR=/.cache/embeddings
+
+OLLAMA_BASE_URL=http://ooocheckitout:11434
+EMBEDDING_PROVIDER=ollama
+EMBEDDING_MODEL=all-minilm:l6-v2
+CHAT_PROVIDER=ollama
+CHAT_MODEL=phi4-mini:3.8b
+"""
