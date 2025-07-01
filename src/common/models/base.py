@@ -7,6 +7,7 @@ class Base(DeclarativeBase):
     def __repr__(self):
         attributes = []
         for attribute, value in self.__dict__.items():
-            attributes.append(f"{attribute}={value}")
+            if not attribute.startswith("_"):
+                attributes.append(f"{attribute}={value}")
 
         return f"{self.__class__.__name__}({', '.join(attributes)})"
