@@ -1,8 +1,8 @@
 [[deployment]]
-name = "llm-knowledge-base-search-bot"
+name = "llm-knowledge-base-db-bot"
 [deployment.config]
 server = "master"
 image.type = "Build"
-image.params.build = "llm-knowledge-base-search-bot"
+image.params.build = "llm-knowledge-base-db-bot"
 image_registry_account = "ooocheckitout"
 redeploy_on_build = true
