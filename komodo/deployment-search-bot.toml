@@ -12,7 +12,7 @@ db_search_embeddings:/.embeddings
 """
 environment = """
 TELEGRAM_BOT_TOKEN=[[TELEGRAM_SEARCH_BOT_TOKEN]]
-DB_CONNECTION_STRING=postgresql://[[POSTGRES_USER]]:[[POSTGRES_PASSWORD]]@ooocheckitout:15432/llm-knowledge-base
+DB_CONNECTION_STRING=postgresql://[[POSTGRES_USER]]:[[POSTGRES_PASSWORD]]@raspberrypi:15432/llm-knowledge-base
 
 CHROMA_PERSIST_DIR=/.chroma
 EMBEDDINGS_CACHE_DIR=/.embeddings
