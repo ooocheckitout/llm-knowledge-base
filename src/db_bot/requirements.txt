@@ -1,15 +1,15 @@
-python-dotenv
+python-dotenv==1.1.1
 
-python-telegram-bot
-telegramify-markdown
+python-telegram-bot==22.2
+telegramify-markdown==0.5.1
 
-langchain
-langchain-huggingface
-langchain-text-splitters
-langchain-chroma
-langchain-openai
-langchain-ollama
-langchain-community
+langchain==0.3.26
+langchain-huggingface==0.3.0
+langchain-text-splitters==0.3.8
+langchain-chroma==0.2.4
+langchain-openai==0.3.27
+langchain-ollama==0.3.3
+langchain-community==0.3.26
 
-langsmith
-langgraph
+langsmith==0.4.4
+langgraph==0.5.0
