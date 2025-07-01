@@ -11,4 +11,4 @@ RUN playwright install --with-deps
 
 COPY . .
 RUN chmod +x src/db_bot/main.py
-CMD ["python3", "src.db_bot.main.py"]
+CMD ["python3", "src.db_bot.main"]
