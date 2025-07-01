@@ -3,7 +3,7 @@ name = "openwebui"
 deploy = true
 [stack.config]
 server = "master"
-project_name = "komodo"
+project_name = "llm-knowledge-base"
 poll_for_updates = true
 auto_update = true
 linked_repo = "llm-knowledge-base"
