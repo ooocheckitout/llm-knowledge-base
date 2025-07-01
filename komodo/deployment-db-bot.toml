@@ -7,8 +7,8 @@ image.params.build = "llm-knowledge-base-db-bot"
 image_registry_account = "ooocheckitout"
 redeploy_on_build = true
 volumes = """
-db_bot/.chroma:/.chroma
-db_bot/.embeddings:/.embeddings
+db_bot_chroma:/.chroma
+db_bot_embeddings:/.embeddings
 """
 environment = """
 TELEGRAM_BOT_TOKEN=[[TELEGRAM_DB_BOT_TOKEN]]

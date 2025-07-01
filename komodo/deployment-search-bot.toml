@@ -7,8 +7,8 @@ image.params.build = "llm-knowledge-base-search-bot"
 image_registry_account = "ooocheckitout"
 redeploy_on_build = true
 volumes = """
-db_search/.chroma:/.chroma
-db_search/.embeddings:/.embeddings
+db_search_chroma:/.chroma
+db_search_embeddings:/.embeddings
 """
 environment = """
 TELEGRAM_BOT_TOKEN=[[TELEGRAM_SEARCH_BOT_TOKEN]]
