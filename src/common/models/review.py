@@ -14,7 +14,6 @@ class ReviewType(StrEnum):
 class Review(Base):
     __tablename__ = "reviews"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     message_id: Mapped[int] = mapped_column(ForeignKey("messages.id"))
     feedback_type: Mapped[str] = mapped_column()
