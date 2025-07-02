@@ -11,5 +11,16 @@ services:
       - pg-data:/var/lib/postgresql/data/
     restart: unless-stopped
 
+  pgadmin:
+    image: 'docker.io/dpage/pgadmin4:latest'
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL}"
+      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD}"
+    ports:
+      - "15080:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin/
+
 volumes:
   pg-data:
+  pgadmin-data:
