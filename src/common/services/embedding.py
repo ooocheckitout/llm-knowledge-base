@@ -13,49 +13,54 @@ logger = logging.getLogger(__name__)
 
 class EmbeddingService:
     def __init__(self):
-        self._embedding = None
-        self.providers = {
+        providers = {
             "ollama": self.initialize_ollama,
             "openai": self.initialize_openai,
             "huggingface": self.initialize_huggingface,
         }
+        model_name = os.getenv('EMBEDDING_MODEL', 'all-minilm:l6-v2')
+        cache_location = os.getenv('EMBEDDINGS_CACHE_DIR', '.cache/embeddings')
+        self._embedding = self.cached(
+            providers[os.getenv('EMBEDDING_PROVIDER', 'ollama')](model_name),
+            cache_location
+        )
 
     @property
     def embedding(self):
-        if not self._embedding:
-            self._embedding = self.cached(self.providers[os.getenv('EMBEDDING_PROVIDER')]())
-
         return self._embedding
 
+    def vectorize(self, texts: list[str]):
+        return self.embedding.embed_documents(texts)
+
     @staticmethod
-    def cached(embeddings: Embeddings):
-        logger.info(f"Initializing CacheBackedEmbeddings({os.getenv('EMBEDDINGS_CACHE_DIR')})")
+    def cached(embeddings: Embeddings, location: str):
+        logger.info(f"Initializing CacheBackedEmbeddings({location})")
         return CacheBackedEmbeddings.from_bytes_store(
-            embeddings, LocalFileStore(os.getenv('EMBEDDINGS_CACHE_DIR'))
+            embeddings, LocalFileStore(location)
         )
 
     @staticmethod
-    def initialize_ollama():
-        logger.info(f"Initializing OllamaEmbeddings({os.getenv('EMBEDDING_MODEL')})")
+    def initialize_ollama(model_name: str):
+        logger.info(f"Initializing OllamaEmbeddings({model_name})")
         return OllamaEmbeddings(
-            model=os.getenv('EMBEDDING_MODEL'),
+            model=model_name,
             base_url=os.getenv('OLLAMA_BASE_URL')
         )
 
     @staticmethod
-    def initialize_openai():
-        logger.info(f"Initializing OpenAIEmbeddings({os.getenv('EMBEDDING_MODEL')})")
+    def initialize_openai(model_name: str):
+        logger.info(f"Initializing OpenAIEmbeddings({model_name})")
         return OpenAIEmbeddings(
-            model=os.getenv('EMBEDDING_MODEL'),
+            model=model_name,
             base_url=os.getenv('OPENAI_BASE_URL'),
             api_key=os.getenv('OPENAI_API_KEY')
         )
 
     @staticmethod
-    def initialize_huggingface():
-        logger.info(f"Initializing HuggingFaceEmbeddings({os.getenv('EMBEDDING_MODEL')})")
+    def initialize_huggingface(model_name: str):
+        logger.info(f"Initializing HuggingFaceEmbeddings({model_name})")
         return HuggingFaceEmbeddings(
-            model="sentence-transformers/all-MiniLM-L6-v2",
+            model=model_name,
             model_kwargs={'device': 'cpu'},
             encode_kwargs={'normalize_embeddings': False}
         )

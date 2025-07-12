@@ -9,33 +9,34 @@ logger = logging.getLogger(__name__)
 
 class ChatService:
     def __init__(self):
-        self._chat = None
-        self.providers = {
+        providers = {
             "ollama": self.initialize_ollama,
             "openai": self.initialize_openai
         }
+        model_name = os.getenv('CHAT_MODEL', 'phi4-mini:3.8b')
+        self._chat = providers[os.getenv('CHAT_PROVIDER', 'ollama')](model_name)
 
     @property
     def llm(self):
-        if not self._chat:
-            self._chat = self.providers[os.getenv('CHAT_PROVIDER')]()
-
         return self._chat
 
+    def ask(self, question: str):
+        return self._chat.invoke(question)
+
     @staticmethod
-    def initialize_ollama():
-        logger.info(f"Initializing ChatOllama({os.getenv('CHAT_MODEL')})")
+    def initialize_ollama(model_name: str):
+        logger.info(f"Initializing ChatOllama({model_name})")
         return ChatOllama(
-            model=os.getenv('CHAT_MODEL'),
+            model=model_name,
             base_url=os.getenv('OLLAMA_BASE_URL'),
             temperature=0,
         )
 
     @staticmethod
-    def initialize_openai():
-        logger.info(f"Initializing ChatOpenAI({os.getenv('CHAT_MODEL')})")
+    def initialize_openai(model_name: str):
+        logger.info(f"Initializing ChatOpenAI({model_name})")
         return ChatOpenAI(
-            model=os.getenv('CHAT_MODEL'),
+            model=model_name,
             base_url=os.getenv('OPENAI_BASE_URL'),
             api_key=os.getenv('OPENAI_API_KEY'),
             temperature=0,
