@@ -1,26 +1,22 @@
 services:
-  postgres:
-    image: "docker.io/postgres:latest"
-    environment:
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-      POSTGRES_DB: "llm-knowledge-base"
-    ports:
-      - "15432:5432"
-    volumes:
-      - pg-data:/var/lib/postgresql/data/
-    restart: unless-stopped
-
   pgadmin:
     image: 'docker.io/dpage/pgadmin4:latest'
     environment:
       PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL}"
       PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD}"
-    ports:
-      - "15080:80"
     volumes:
-      - pgadmin-data:/var/lib/pgadmin/
+      - pgadmin_data:/var/lib/pgadmin/
+
+  postgres:
+    image: "docker.io/postgres:latest"
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    volumes:
+      - pg_data:/var/lib/postgresql/data/
+    restart: unless-stopped
+    container_name: postgres
 
 volumes:
-  pg-data:
-  pgadmin-data:
+  pg_data:
+  pgadmin_data:

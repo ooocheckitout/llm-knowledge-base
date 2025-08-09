@@ -44,33 +44,13 @@ services:
     restart: always
     image: "docker.n8n.io/n8nio/n8n"
 
-  pgadmin:
-    image: 'docker.io/dpage/pgadmin4:latest'
-    environment:
-      PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL}"
-      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD}"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin/
-
-  postgres:
-    image: "docker.io/postgres:latest"
-    environment:
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-    volumes:
-      - pg_data:/var/lib/postgresql/data/
-    restart: unless-stopped
-    container_name: postgres
-
 volumes:
   npm_data:
   npm_letsencrypt:
   n8n_data:
   n8n_samples:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ~/Downloads/Databricks
-  pg_data:
-  pgadmin_data:
+#    driver: local
+#    driver_opts:
+#      o: bind
+#      type: none
+#      device: ~/Downloads/Databricks
