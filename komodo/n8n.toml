@@ -1,11 +1,14 @@
 [[stack]]
-name = "ollama"
+name = "n8n"
 deploy = true
 [stack.config]
-server = "worker-gpu"
+server = "master"
 project_name = "llm-knowledge-base"
 poll_for_updates = true
 auto_update = true
 linked_repo = "llm-knowledge-base"
 run_directory = "docker"
-file_paths = ["ollama.yml"]
+file_paths = ["n8n.yml"]
+links = [
+  "http://raspberrypi:5678/"
+]

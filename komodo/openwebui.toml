@@ -10,5 +10,5 @@ linked_repo = "llm-knowledge-base"
 run_directory = "docker"
 file_paths = ["openwebui.yml"]
 links = [
-  "http://raspberrypi:3000/"
+  "http://raspberrypi:8080/"
 ]
