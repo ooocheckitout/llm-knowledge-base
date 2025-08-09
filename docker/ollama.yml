@@ -1,0 +1,19 @@
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - gpu
+    volumes:
+      - ollama_data:/root/.ollama
+    container_name: ollama
+    image: "docker.io/ollama/ollama:latest"
+    ports:
+      - "11434:11434"
+
+volumes:
+  ollama_data:
