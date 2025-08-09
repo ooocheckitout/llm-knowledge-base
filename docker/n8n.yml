@@ -19,8 +19,8 @@ services:
       - "81:81"
       - "443:443"
     volumes:
-      - npm_data:/data
-      - npm_letsencrypt:/etc/letsencrypt
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
     environment:
       INITIAL_ADMIN_EMAIL: "${INITIAL_ADMIN_EMAIL}"
       INITIAL_ADMIN_PASSWORD: "${INITIAL_ADMIN_PASSWORD}"
@@ -39,13 +39,13 @@ services:
       - TZ=Europe/Warsaw
       - N8N_SECURE_COOKIE=false
     volumes:
-      - n8n_data:/home/node/.n8n
-      - n8n_samples:/home/samples
+      - n8n-data:/home/node/.n8n
+      - n8n-samples:/home/samples
     restart: always
     image: "docker.n8n.io/n8nio/n8n"
 
 volumes:
-  npm_data:
-  npm_letsencrypt:
-  n8n_data:
-  n8n_samples:
+  npm-data:
+  npm-letsencrypt:
+  n8n-data:
+  n8n-samples:
