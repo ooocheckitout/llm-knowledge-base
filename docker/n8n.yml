@@ -8,7 +8,7 @@ services:
       - "--url=quagga-ultimate-finch.ngrok-free.app"
       - "http://host.docker.internal:80"
     environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTH_TOKEN}
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
 
   nginx-proxy-manager:
     image: "jc21/nginx-proxy-manager:latest"

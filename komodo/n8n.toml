@@ -10,5 +10,10 @@ linked_repo = "llm-knowledge-base"
 run_directory = "docker"
 file_paths = ["n8n.yml"]
 links = [
-  "http://raspberrypi:5678/"
+    "http://raspberrypi:5678/"
 ]
+environment = """
+NGROK_AUTHTOKEN='[[NGROK_AUTHTOKEN]]'
+INITIAL_ADMIN_EMAIL='[[INITIAL_ADMIN_EMAIL]]'
+INITIAL_ADMIN_PASSWORD='[[INITIAL_ADMIN_PASSWORD]]'
+"""
