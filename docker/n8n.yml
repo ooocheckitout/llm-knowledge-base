@@ -49,8 +49,3 @@ volumes:
   npm_letsencrypt:
   n8n_data:
   n8n_samples:
-#    driver: local
-#    driver_opts:
-#      o: bind
-#      type: none
-#      device: ~/Downloads/Databricks
