@@ -8,9 +8,7 @@ services:
       - "--url=quagga-ultimate-finch.ngrok-free.app"
       - "http://host.docker.internal:80"
     environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
-    ports:
-      - "4040:4040"
+      NGROK_AUTHTOKEN: ${NGROK_AUTH_TOKEN}
 
   nginx-proxy-manager:
     image: "jc21/nginx-proxy-manager:latest"
@@ -24,15 +22,13 @@ services:
       - npm_data:/data
       - npm_letsencrypt:/etc/letsencrypt
     environment:
-      INITIAL_ADMIN_EMAIL: "${POSTGRES_USER}"
-      INITIAL_ADMIN_PASSWORD: "${POSTGRES_PASSWORD}"
+      INITIAL_ADMIN_EMAIL: "${INITIAL_ADMIN_EMAIL}"
+      INITIAL_ADMIN_PASSWORD: "${INITIAL_ADMIN_PASSWORD}"
 
   n8n:
     stdin_open: true
     tty: true
     container_name: n8n
-    ports:
-      - "5678:5678"
     environment:
       - NODE_ENV=production
       - N8N_PORT=5678
@@ -48,43 +44,21 @@ services:
     restart: always
     image: "docker.n8n.io/n8nio/n8n"
 
-  ollama:
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities:
-                - gpu
-    volumes:
-      - ollama_data:/root/.ollama
-    ports:
-      - "11434:11434"
-    container_name: ollama
-    image: "docker.io/ollama/ollama:latest"
-
-  openwebui:
-    container_name: openwebui
-    image: "ghcr.io/open-webui/open-webui:main"
-    ports:
-      - "8080:8080"
-    volumes:
-      - open_webui_data:/app/backend/data
-    restart: unless-stopped
+  pgadmin:
+    image: 'docker.io/dpage/pgadmin4:latest'
     environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
+      PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL}"
+      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD}"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin/
 
   postgres:
     image: "docker.io/postgres:latest"
     environment:
       POSTGRES_USER: "${POSTGRES_USER}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-      POSTGRES_DB: "llm-knowledge-base"
-    ports:
-      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - pg_data:/var/lib/postgresql/data/
     restart: unless-stopped
     container_name: postgres
 
@@ -98,6 +72,5 @@ volumes:
       o: bind
       type: none
       device: ~/Downloads/Databricks
-  ollama_data:
-  open_webui_data:
-  postgres_data:
+  pg_data:
+  pgadmin_data:

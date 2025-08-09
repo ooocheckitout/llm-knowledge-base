@@ -1,13 +1,29 @@
 services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - gpu
+    volumes:
+      - ollama_data:/root/.ollama
+    container_name: ollama
+    image: "docker.io/ollama/ollama:latest"
+
   openwebui:
+    container_name: openwebui
     image: "ghcr.io/open-webui/open-webui:main"
     ports:
-      - "3000:8080"
+      - "8080:8080"
     volumes:
-      - open-webui:/app/backend/data
+      - open_webui_data:/app/backend/data
     restart: unless-stopped
     environment:
-      - OLLAMA_BASE_URL=http://ooocheckitout:11434
+      - OLLAMA_BASE_URL=http://ollama:11434
 
 volumes:
-  open-webui:
+  ollama_data:
+  open_webui_data:
