@@ -13,10 +13,6 @@ services:
     image: "jc21/nginx-proxy-manager:latest"
     container_name: nginx-proxy-manager
     restart: unless-stopped
-    ports:
-      - "80:80"
-      - "81:81"
-      - "443:443"
     volumes:
       - npm-data:/data
       - npm-letsencrypt:/etc/letsencrypt
@@ -42,8 +38,6 @@ services:
       - n8n-samples:/home/samples
     restart: always
     image: "docker.n8n.io/n8nio/n8n"
-    ports:
-      - "5678:5678"
 
 volumes:
   npm-data:
