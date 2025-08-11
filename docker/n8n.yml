@@ -7,7 +7,7 @@ services:
     command: tunnel --no-autoupdate run
     environment:
       - TZ=Europe/Warsaw
-      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
 
   nginx-proxy-manager:
     image: "jc21/nginx-proxy-manager:latest"
