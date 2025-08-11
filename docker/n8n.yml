@@ -1,14 +1,13 @@
 name: n8n
 services:
-  ngrok-http:
-    image: ngrok/ngrok:latest
-    container_name: ngrok-http
-    command:
-      - "http"
-      - "--url=quagga-ultimate-finch.ngrok-free.app"
-      - "http://host.docker.internal:80"
+  cloudflared:
+    restart: unless-stopped
+    image: cloudflare/cloudflared
+    container_name: cloudflared
+    command: tunnel --no-autoupdate run
     environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+      - TZ=Europe/Warsaw
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
 
   nginx-proxy-manager:
     image: "jc21/nginx-proxy-manager:latest"
@@ -32,8 +31,8 @@ services:
     environment:
       - NODE_ENV=production
       - N8N_PORT=5678
-      - N8N_HOST=quagga-ultimate-finch.ngrok-free.app
-      - WEBHOOK_URL=https://quagga-ultimate-finch.ngrok-free.app/
+      - N8N_HOST=n8n.bitspire.team
+      - WEBHOOK_URL=https://n8n.bitspire.team/
       - N8N_PROTOCOL=http
       - GENERIC_TIMEZONE=Europe/Warsaw
       - TZ=Europe/Warsaw
@@ -43,6 +42,8 @@ services:
       - n8n-samples:/home/samples
     restart: always
     image: "docker.n8n.io/n8nio/n8n"
+    ports:
+      - "5678:5678"
 
 volumes:
   npm-data:
