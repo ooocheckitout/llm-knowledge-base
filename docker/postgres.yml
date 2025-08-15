@@ -8,8 +8,8 @@ services:
       - pgadmin_data:/var/lib/pgadmin/
     networks:
       - shared
-#    ports:
-#      - "80:80"
+    #    ports:
+    #      - "80:80"
     container_name: pgadmin
 
   postgres:
@@ -21,8 +21,8 @@ services:
       - pg_data:/var/lib/postgresql/data/
     networks:
       - shared
-#    ports:
-#      - "5432:5432"
+    #    ports:
+    #      - "5432:5432"
     restart: unless-stopped
     container_name: postgres
 

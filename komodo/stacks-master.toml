@@ -1,0 +1,73 @@
+[[stack]]
+name = "proxy"
+deploy = true
+[stack.config]
+server = "master"
+project_name = "llm-knowledge-base"
+linked_repo = "llm-knowledge-base"
+run_directory = "docker"
+file_paths = ["proxy.yml"]
+links = [
+    "http://raspberrypi:81/"
+]
+
+[[stack]]
+name = "n8n"
+deploy = true
+[stack.config]
+server = "master"
+project_name = "llm-knowledge-base"
+linked_repo = "llm-knowledge-base"
+webhook_enabled = false
+run_directory = "docker"
+file_paths = ["n8n.yml"]
+links = [
+  "https://n8n.bitspire.team/"
+]
+environment = """
+CLOUDFLARE_TUNNEL_TOKEN='[[CLOUDFLARE_TUNNEL_TOKEN]]'
+INITIAL_ADMIN_EMAIL='[[INITIAL_ADMIN_EMAIL]]'
+INITIAL_ADMIN_PASSWORD='[[INITIAL_ADMIN_PASSWORD]]'
+"""
+
+[[stack]]
+name = "openwebui"
+deploy = true
+[stack.config]
+server = "master"
+project_name = "llm-knowledge-base"
+linked_repo = "llm-knowledge-base"
+run_directory = "docker"
+file_paths = ["openwebui.yml"]
+links = [
+  "https://openwebui.bitspire.team/"
+]
+
+[[stack]]
+name = "postgres"
+deploy = true
+[stack.config]
+server = "master"
+project_name = "llm-knowledge-base"
+linked_repo = "llm-knowledge-base"
+run_directory = "docker"
+file_paths = ["postgres.yml"]
+environment = """
+POSTGRES_USER='[[POSTGRES_USER]]'
+POSTGRES_PASSWORD='[[POSTGRES_PASSWORD]]'
+PGADMIN_DEFAULT_EMAIL='[[PGADMIN_DEFAULT_EMAIL]]'
+PGADMIN_DEFAULT_PASSWORD='[[PGADMIN_DEFAULT_PASSWORD]]'
+"""
+
+[[stack]]
+name = "portainer"
+deploy = false
+[stack.config]
+server = "master"
+project_name = "llm-knowledge-base"
+linked_repo = "llm-knowledge-base"
+run_directory = "docker"
+file_paths = ["portainer.yml"]
+links = [
+  "https://portainer.bitspire.team/"
+]

@@ -15,8 +15,8 @@ services:
     container_name: ollama
     image: "docker.io/ollama/ollama:latest"
     restart: unless-stopped
-  #    ports:
-  #      - "11434:11434"
+    ports:
+      - "11434:11434"
 
 volumes:
   ollama-data:
