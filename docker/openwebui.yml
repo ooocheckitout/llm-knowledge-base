@@ -11,6 +11,7 @@ services:
     restart: unless-stopped
     environment:
       - OLLAMA_BASE_URL=http://ooocheckitout:11434
+      - ENABLE_WEBSOCKET_SUPPORT=false
 
 volumes:
   openwebui-data:
