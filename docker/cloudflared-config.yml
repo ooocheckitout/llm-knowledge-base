@@ -1,5 +1,3 @@
-tunnel: raspberry-pi
-
 ingress:
   - hostname: "bitspire.team"
     service: http://nginx-proxy-manager:80
