@@ -1,6 +1,6 @@
 [[stack]]
 name = "ollama"
-deploy = false
+deploy = true
 [stack.config]
 server = "worker-gpu"
 project_name = "llm-knowledge-base"
