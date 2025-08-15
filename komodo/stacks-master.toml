@@ -61,7 +61,7 @@ PGADMIN_DEFAULT_PASSWORD='[[PGADMIN_DEFAULT_PASSWORD]]'
 
 [[stack]]
 name = "portainer"
-deploy = false
+deploy = true
 [stack.config]
 server = "master"
 project_name = "llm-knowledge-base"

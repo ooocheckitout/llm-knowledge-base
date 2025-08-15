@@ -1,6 +1,6 @@
 [[stack]]
 name = "ollama"
-deploy = false
+deploy = true
 [stack.config]
 server = "worker-gpu"
 project_name = "llm-knowledge-base"
@@ -13,7 +13,7 @@ links = [
 
 [[stack]]
 name = "portainer-agent"
-deploy = false
+deploy = true
 [stack.config]
 server = "worker-gpu"
 project_name = "llm-knowledge-base"
