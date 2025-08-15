@@ -32,14 +32,12 @@ services:
   nginx:
     container_name: nginx
     image: nginx:latest
-    ports:
-      - "3000:80"
     environment:
       - NGINX_PORT=80
     volumes:
       - ./index.html:/usr/share/nginx/html/index.html:ro
     networks:
-      shared:
+      - shared
 
 volumes:
   npm-data:
