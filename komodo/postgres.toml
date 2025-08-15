@@ -1,15 +1,15 @@
-[[stack]]
-name = "postgres"
-deploy = true
-[stack.config]
-server = "master"
-project_name = "llm-knowledge-base"
-linked_repo = "llm-knowledge-base"
-run_directory = "docker"
-file_paths = ["postgres.yml"]
-environment = """
-POSTGRES_USER='[[POSTGRES_USER]]'
-POSTGRES_PASSWORD='[[POSTGRES_PASSWORD]]'
-PGADMIN_DEFAULT_EMAIL='[[PGADMIN_DEFAULT_EMAIL]]'
-PGADMIN_DEFAULT_PASSWORD='[[PGADMIN_DEFAULT_PASSWORD]]'
-"""
+#[[stack]]
+#name = "postgres"
+#deploy = true
+#[stack.config]
+#server = "master"
+#project_name = "llm-knowledge-base"
+#linked_repo = "llm-knowledge-base"
+#run_directory = "docker"
+#file_paths = ["postgres.yml"]
+#environment = """
+#POSTGRES_USER='[[POSTGRES_USER]]'
+#POSTGRES_PASSWORD='[[POSTGRES_PASSWORD]]'
+#PGADMIN_DEFAULT_EMAIL='[[PGADMIN_DEFAULT_EMAIL]]'
+#PGADMIN_DEFAULT_PASSWORD='[[PGADMIN_DEFAULT_PASSWORD]]'
+#"""
