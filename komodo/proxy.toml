@@ -8,5 +8,7 @@ linked_repo = "llm-knowledge-base"
 run_directory = "docker"
 file_paths = ["proxy.yml"]
 links = [
-  "http://raspberrypi:8080/"
+    "http://raspberrypi/",
+    "https://raspberrypi/",
+    "http://raspberrypi:81/"
 ]
