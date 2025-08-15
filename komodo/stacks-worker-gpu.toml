@@ -2,7 +2,8 @@
 name = "ollama"
 deploy = true
 [stack.config]
-server = "worker-gpu"
+server = "master"
+#server = "worker-gpu"
 project_name = "llm-knowledge-base"
 linked_repo = "llm-knowledge-base"
 run_directory = "docker"
