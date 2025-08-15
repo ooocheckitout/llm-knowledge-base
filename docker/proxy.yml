@@ -29,6 +29,18 @@ services:
       INITIAL_ADMIN_EMAIL: "${INITIAL_ADMIN_EMAIL}"
       INITIAL_ADMIN_PASSWORD: "${INITIAL_ADMIN_PASSWORD}"
 
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    ports:
+      - "8080:80"
+    environment:
+      - NGINX_PORT=80
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+    networks:
+      shared:
+
 volumes:
   npm-data:
   npm-letsencrypt:
