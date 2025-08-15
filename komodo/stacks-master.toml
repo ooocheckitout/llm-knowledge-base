@@ -10,6 +10,11 @@ file_paths = ["proxy.yml"]
 links = [
     "http://raspberrypi:81/"
 ]
+environment = """
+CLOUDFLARE_TUNNEL_TOKEN='[[CLOUDFLARE_TUNNEL_TOKEN]]'
+INITIAL_ADMIN_EMAIL='[[INITIAL_ADMIN_EMAIL]]'
+INITIAL_ADMIN_PASSWORD='[[INITIAL_ADMIN_PASSWORD]]'
+"""
 
 [[stack]]
 name = "n8n"
@@ -24,11 +29,6 @@ file_paths = ["n8n.yml"]
 links = [
   "https://n8n.bitspire.team/"
 ]
-environment = """
-CLOUDFLARE_TUNNEL_TOKEN='[[CLOUDFLARE_TUNNEL_TOKEN]]'
-INITIAL_ADMIN_EMAIL='[[INITIAL_ADMIN_EMAIL]]'
-INITIAL_ADMIN_PASSWORD='[[INITIAL_ADMIN_PASSWORD]]'
-"""
 
 [[stack]]
 name = "openwebui"
