@@ -1,0 +1,31 @@
+services:
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:2.27.9
+    #    ports:
+    #      - "9443:9443"
+    volumes:
+      - portainer-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - shared
+    restart: unless-stopped
+
+  portainer-agent:
+    container_name: portainer-agent
+    image: portainer/agent:2.27.9
+    #    ports:
+    #      - "9001:9001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+      - /:/host
+    networks:
+      - shared
+    restart: unless-stopped
+
+volumes:
+  portainer-data:
+
+networks:
+  shared:

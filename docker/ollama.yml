@@ -9,11 +9,17 @@ services:
               capabilities:
                 - gpu
     volumes:
-      - ollama_data:/root/.ollama
+      - ollama-data:/root/.ollama
+    networks:
+      - shared
     container_name: ollama
     image: "docker.io/ollama/ollama:latest"
-    ports:
-      - "11434:11434"
+    restart: unless-stopped
+  #    ports:
+  #      - "11434:11434"
 
 volumes:
-  ollama_data:
+  ollama-data:
+
+networks:
+  shared:

@@ -1,0 +1,37 @@
+services:
+  cloudflared:
+    restart: unless-stopped
+    image: "cloudflare/cloudflared"
+    container_name: cloudflared
+    command: tunnel --config /etc/cloudflared/config.yml --no-autoupdate run
+    volumes:
+      - ./cloudflared-config.yml:/etc/cloudflared/config.yml:ro
+    networks:
+      - shared
+    environment:
+      - TZ=Europe/Warsaw
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+
+  nginx-proxy-manager:
+    image: "jc21/nginx-proxy-manager:latest"
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+#      - "80:80"
+#      - "443:443"
+      - "81:81"
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+    networks:
+      - shared
+    environment:
+      INITIAL_ADMIN_EMAIL: "${INITIAL_ADMIN_EMAIL}"
+      INITIAL_ADMIN_PASSWORD: "${INITIAL_ADMIN_PASSWORD}"
+
+volumes:
+  npm-data:
+  npm-letsencrypt:
+
+networks:
+  shared:

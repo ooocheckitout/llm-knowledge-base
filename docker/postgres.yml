@@ -6,6 +6,11 @@ services:
       PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD}"
     volumes:
       - pgadmin_data:/var/lib/pgadmin/
+    networks:
+      - shared
+#    ports:
+#      - "80:80"
+    container_name: pgadmin
 
   postgres:
     image: "docker.io/postgres:latest"
@@ -14,9 +19,17 @@ services:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
     volumes:
       - pg_data:/var/lib/postgresql/data/
+    networks:
+      - shared
+#    ports:
+#      - "5432:5432"
     restart: unless-stopped
     container_name: postgres
 
 volumes:
   pg_data:
   pgadmin_data:
+
+networks:
+  shared:
+

@@ -1,34 +1,15 @@
-name: n8n
 services:
-  cloudflared:
-    restart: unless-stopped
-    image: cloudflare/cloudflared
-    container_name: cloudflared
-    command: tunnel --no-autoupdate run
-    environment:
-      - TZ=Europe/Warsaw
-      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
-
-  nginx-proxy-manager:
-    image: "jc21/nginx-proxy-manager:latest"
-    container_name: nginx-proxy-manager
-    restart: unless-stopped
-    volumes:
-      - npm-data:/data
-      - npm-letsencrypt:/etc/letsencrypt
-    environment:
-      INITIAL_ADMIN_EMAIL: "${INITIAL_ADMIN_EMAIL}"
-      INITIAL_ADMIN_PASSWORD: "${INITIAL_ADMIN_PASSWORD}"
-
   n8n:
     stdin_open: true
     tty: true
     container_name: n8n
+    #    ports:
+    #      - "5678:5678"
     environment:
       - NODE_ENV=production
       - N8N_PORT=5678
-#      - N8N_HOST=n8n.bitspire.team
-#      - WEBHOOK_URL=https://n8n.bitspire.team/
+      - N8N_HOST=n8n.bitspire.team
+      - WEBHOOK_URL=https://n8n.bitspire.team/
       - N8N_PROTOCOL=http
       - GENERIC_TIMEZONE=Europe/Warsaw
       - TZ=Europe/Warsaw
@@ -36,11 +17,14 @@ services:
     volumes:
       - n8n-data:/home/node/.n8n
       - n8n-samples:/home/samples
-    restart: always
+    networks:
+      - shared
+    restart: unless-stopped
     image: "docker.n8n.io/n8nio/n8n"
 
 volumes:
-  npm-data:
-  npm-letsencrypt:
   n8n-data:
   n8n-samples:
+
+networks:
+  shared:

@@ -2,13 +2,19 @@ services:
   openwebui:
     container_name: openwebui
     image: "ghcr.io/open-webui/open-webui:main"
-    ports:
-      - "8080:8080"
+#    ports:
+#      - "8080:8080"
     volumes:
-      - open_webui_data:/app/backend/data
+      - openwebui-data:/app/backend/data
+    networks:
+      - shared
     restart: unless-stopped
     environment:
-      - OLLAMA_BASE_URL=http://ooocheckitout:11434
+      - OLLAMA_BASE_URL=http://ollama:11434
 
 volumes:
-  open_webui_data:
+  openwebui-data:
+
+networks:
+  shared:
+
