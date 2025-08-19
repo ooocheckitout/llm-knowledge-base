@@ -42,8 +42,8 @@ services:
 
   uptime-kuma:
     restart: unless-stopped
-#    ports:
-#      - "3001:3001"
+    ports:
+      - "3001:3001"
     volumes:
       - uptime-kuma:/app/data
     networks:
