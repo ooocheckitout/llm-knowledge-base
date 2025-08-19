@@ -32,6 +32,7 @@ services:
   nginx:
     container_name: nginx
     image: nginx:latest
+    restart: unless-stopped
     environment:
       - NGINX_PORT=80
     volumes:
@@ -39,9 +40,21 @@ services:
     networks:
       - shared
 
+  uptime-kuma:
+    restart: unless-stopped
+#    ports:
+#      - "3001:3001"
+    volumes:
+      - uptime-kuma:/app/data
+    networks:
+      - shared
+    container_name: uptime-kuma
+    image: "louislam/uptime-kuma:1"
+
 volumes:
   npm-data:
   npm-letsencrypt:
+  uptime-kuma:
 
 networks:
   shared:
