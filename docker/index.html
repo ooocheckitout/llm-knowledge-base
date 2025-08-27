@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+	<link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
+	<script type="module">
+		import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+
+		createChat({
+			webhookUrl: 'YOUR_PRODUCTION_WEBHOOK_URL'
+		});
+	</script>
   </head>
   <body>
     <!-- Hero Sections -->
@@ -93,7 +101,7 @@
 		</div>
 	  </div>
 	</div>
-	
+
 	<!-- Stats -->
 	<div class="bg-white py-24 sm:py-32">
 	  <div class="mx-auto max-w-7xl px-6 lg:px-8">
@@ -113,7 +121,7 @@
 		</dl>
 	  </div>
 	</div>
-	
+
 	<!-- Feature Sections -->
 	<div class="bg-white py-24 sm:py-32">
 	  <div class="mx-auto max-w-7xl px-6 lg:px-8">
@@ -172,7 +180,7 @@
 		</div>
 	  </div>
 	</div>
-	
+
 	<!-- Contact Sections -->
 	<div class="isolate bg-white px-6 py-24 sm:py-32 lg:px-8">
 	  <div aria-hidden="true" class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
@@ -250,8 +258,8 @@
 		</div>
 	  </form>
 	</div>
-	
-	
+
+
   </body>
 </html>
 
