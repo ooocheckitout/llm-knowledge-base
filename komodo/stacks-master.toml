@@ -58,16 +58,3 @@ POSTGRES_PASSWORD='[[POSTGRES_PASSWORD]]'
 PGADMIN_DEFAULT_EMAIL='[[PGADMIN_DEFAULT_EMAIL]]'
 PGADMIN_DEFAULT_PASSWORD='[[PGADMIN_DEFAULT_PASSWORD]]'
 """
-
-[[stack]]
-name = "portainer"
-deploy = true
-[stack.config]
-server = "master"
-project_name = "llm-knowledge-base"
-linked_repo = "llm-knowledge-base"
-run_directory = "docker"
-file_paths = ["portainer.yml"]
-links = [
-  "https://portainer.bitspire.team/"
-]

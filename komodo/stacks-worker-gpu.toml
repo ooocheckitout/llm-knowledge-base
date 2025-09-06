@@ -10,16 +10,3 @@ file_paths = ["ollama.yml"]
 links = [
   "http://ooocheckitout:11434/"
 ]
-
-[[stack]]
-name = "portainer-agent"
-deploy = true
-[stack.config]
-server = "worker-gpu"
-project_name = "llm-knowledge-base"
-linked_repo = "llm-knowledge-base"
-run_directory = "docker"
-file_paths = ["portainer-agent.yml"]
-links = [
-  "http://ooocheckitout:9001/"
-]
