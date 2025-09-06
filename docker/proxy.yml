@@ -38,7 +38,7 @@ services:
     environment:
       - NGINX_PORT=80
     volumes:
-      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./www/:/usr/share/nginx/html/
     networks:
       - shared
 
