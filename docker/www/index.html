@@ -12,22 +12,6 @@
 
     <link rel="canonical" href="https://bitspire.team/"/>
 	<link rel="icon" href="favicon.png" type="image/png"/>
-
-	<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-	<link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet"/>
-
-	<script type="module">
-		import {createChat} from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
-
-		createChat({
-			webhookUrl: 'https://n8n.bitspire.team/webhook/43dde68c-cad4-48d6-ab37-80b7e544461b/chat',
-            initialMessages: [
-                'Hi there! 👋',
-                'I’m with BitSpire Team - we help businesses streamline sales and lead generation with AI automation.',
-                'Would you like to schedule a free consultation?'
-            ],
-		});
-	</script>
 </head>
   <body>
     <!-- Hero Sections -->
@@ -225,6 +209,21 @@
 		</div>
 	  </form>
 	</div>
+
+	<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+	<link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet"/>
+	<script type="module">
+		import {createChat} from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+
+		createChat({
+			webhookUrl: 'https://n8n.bitspire.team/webhook/43dde68c-cad4-48d6-ab37-80b7e544461b/chat',
+			initialMessages: [
+				'Hi there! 👋',
+				'I’m with BitSpire Team - we help businesses streamline sales and lead generation with AI automation.',
+				'Would you like to schedule a free consultation?'
+			],
+		});
+	</script>
 
   </body>
 </html>
