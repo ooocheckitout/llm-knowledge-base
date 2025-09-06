@@ -2,6 +2,7 @@
 name = "proxy"
 deploy = true
 [stack.config]
+poll_for_updates = true
 server = "master"
 project_name = "llm-knowledge-base"
 linked_repo = "llm-knowledge-base"
@@ -20,6 +21,7 @@ INITIAL_ADMIN_PASSWORD='[[INITIAL_ADMIN_PASSWORD]]'
 name = "n8n"
 deploy = true
 [stack.config]
+poll_for_updates = true
 server = "master"
 project_name = "llm-knowledge-base"
 linked_repo = "llm-knowledge-base"
@@ -34,6 +36,7 @@ links = [
 name = "openwebui"
 deploy = true
 [stack.config]
+poll_for_updates = true
 server = "master"
 project_name = "llm-knowledge-base"
 linked_repo = "llm-knowledge-base"
@@ -47,6 +50,7 @@ links = [
 name = "postgres"
 deploy = true
 [stack.config]
+poll_for_updates = true
 server = "master"
 project_name = "llm-knowledge-base"
 linked_repo = "llm-knowledge-base"

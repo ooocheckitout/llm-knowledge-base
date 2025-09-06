@@ -2,6 +2,7 @@
 name = "ollama"
 deploy = true
 [stack.config]
+poll_for_updates = true
 server = "worker-gpu"
 project_name = "llm-knowledge-base"
 linked_repo = "llm-knowledge-base"
