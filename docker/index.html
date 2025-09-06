@@ -1,18 +1,24 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-	<link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
+<head>
+	<meta charset="UTF-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+	<link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet"/>
 	<script type="module">
-		import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+		import {createChat} from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
 
 		createChat({
-			webhookUrl: 'https://n8n.bitspire.team/webhook/43dde68c-cad4-48d6-ab37-80b7e544461b/chat'
+			webhookUrl: 'https://n8n.bitspire.team/webhook/43dde68c-cad4-48d6-ab37-80b7e544461b/chat',
+            initialMessages: [
+                'Hi there! 👋',
+                'Hey there! I’m with BitSpire Team - we help businesses streamline sales and lead generation with AI automation.',
+                'What’s your focus in the business right now?'
+            ],
+			enableStreaming: true,
 		});
 	</script>
-  </head>
+</head>
   <body>
     <!-- Hero Sections -->
 	<div class="bg-white">
@@ -209,7 +215,6 @@
 		</div>
 	  </form>
 	</div>
-
 
   </body>
 </html>
