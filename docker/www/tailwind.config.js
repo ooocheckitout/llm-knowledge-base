@@ -1,6 +1,6 @@
  /** @type {import('tailwindcss').Config} */
 export default {
-   content: ["./docker/www?input.css*.{html,js}"],
+   content: ["./docker/www/*.{html,js}"],
    theme: {
      extend: {},
    },
