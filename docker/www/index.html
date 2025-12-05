@@ -214,32 +214,79 @@
 		<h2 class="text-4xl font-semibold tracking-tight text-balance text-gray-900 sm:text-5xl">Book your free consultation</h2>
 		<p class="mt-2 text-lg/8 text-gray-600">Tell us about your data challenges and we'll recommend a tailored automation plan. Typical projects deliver measurable value in weeks.</p>
 	  </div>
-	  <form action="https://n8n.bitspire.team/webhook/e28d257f-172b-423c-b711-f8a53b29509a" method="POST" class="mx-auto mt-16 max-w-xl sm:mt-20">
-		<div class="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
-		  <div>
-			<label for="first-name" class="block text-sm/6 font-semibold text-gray-900">First name</label>
-			<div class="mt-2.5">
-			  <input required id="first-name" type="text" name="first-name" autocomplete="given-name" class="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600" />
+		<form action="https://docs.google.com/forms/d/e/1FAIpQLScus1rVdbBo7IqpW14vk1R6Eh9uSboqNFFevwpCEiLjzB_rew/formResponse"
+			target="_self"
+			id="bootstrapForm"
+			method="POST"
+			class="mx-auto mt-16 max-w-xl sm:mt-20">
+
+			<div class="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
+
+				<!-- Field type: "short" id: "2014866902" -->
+				<fieldset class="sm:col-span-2">
+					<legend for="2014866902" class="block text-sm/6 font-semibold text-gray-900">First name</legend>
+					<div class="form-group mt-2.5">
+						<input id="485919012" type="text" name="entry.485919012" required class="form-control block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600" >
+					</div>
+				</fieldset>
+
+
+				<!-- Field type: "short" id: "1201674860" -->
+				<fieldset class="sm:col-span-2">
+					<legend for="1201674860" class="block text-sm/6 font-semibold text-gray-900">Last name</legend>
+					<div class="form-group mt-2.5">
+						<input id="1071598301" type="text" name="entry.1071598301" class="form-control block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600" >
+					</div>
+				</fieldset>
+
+
+				<!-- Field type: "short" id: "2020132034" -->
+				<fieldset class="sm:col-span-2">
+					<legend for="2020132034" class="block text-sm/6 font-semibold text-gray-900">Email</legend>
+					<div class="form-group mt-2.5">
+						<input id="342378077" type="text" name="entry.342378077" required class="form-control block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600">
+					</div>
+				</fieldset>
+
 			</div>
-		  </div>
-		  <div>
-			<label for="last-name" class="block text-sm/6 font-semibold text-gray-900">Last name</label>
-			<div class="mt-2.5">
-			  <input id="last-name" type="text" name="last-name" autocomplete="family-name" class="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600" />
+
+			<input type="hidden" name="fvv" value="1">
+			<input type="hidden" name="fbzx" value="4102010060500883755">
+			<!--
+				CAVEAT: In multipages (multisection) forms, *pageHistory* field tells to google what sections we've currently completed.
+				This usually starts as "0" for the first page, then "0,1" in the second page... up to "0,1,2..N" in n-th page.
+				Keep this in mind if you plan to change this code to recreate any sort of multipage-feature in your exported form.
+				We're setting this to the total number of pages in this form because we're sending all fields from all the section together.
+			-->
+			<input type="hidden" name="pageHistory" value="0">
+
+			<div class="mt-10">
+				<input type="submit" value="Get a consultation" class="block w-full rounded-md bg-indigo-600 px-3.5 py-2.5 text-center text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
 			</div>
-		  </div>
-		  <div class="sm:col-span-2">
-			<label for="email" class="block text-sm/6 font-semibold text-gray-900">Email</label>
-			<div class="mt-2.5">
-			  <input required id="email" type="email" name="email" autocomplete="email" class="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600" />
-			</div>
-		  </div>
-		</div>
-		<div class="mt-10">
-		  <button type="submit" class="block w-full rounded-md bg-indigo-600 px-3.5 py-2.5 text-center text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Get a consultation</button>
-		</div>
-	  </form>
+
+		</form>
 	</div>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.form/4.2.2/jquery.form.min.js" integrity="sha256-2Pjr1OlpZMY6qesJM68t2v39t+lMLvxwpa8QlRjJroA=" crossorigin="anonymous"></script>
+	<script>
+		$('#bootstrapForm').submit(function (event) {
+			event.preventDefault()
+			var extraData = {}
+			$('#bootstrapForm').ajaxSubmit({
+				data: extraData,
+				dataType: 'jsonp',  // This won't really work. It's just to use a GET instead of a POST to allow cookies from different domain.
+				error: function () {
+					// Submit of form should be successful but JSONP callback will fail because Google Forms
+					// does not support it, so this is handled as a failure.
+					alert('Form Submitted. Thanks.')
+					// You can also redirect the user to a custom thank-you page:
+					// window.location = 'http://www.mydomain.com/thankyoupage.html'
+						document.location.href="/";
+				}
+			})
+		})
+	</script>
 
   </body>
 </html>
