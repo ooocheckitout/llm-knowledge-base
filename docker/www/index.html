@@ -237,7 +237,7 @@
 				<fieldset class="sm:col-span-2">
 					<label for="342378077" class="block text-sm/6 font-semibold text-gray-900">Email</label>
 					<div class="form-group mt-2.5">
-						<input id="342378077" type="text" name="entry.342378077" required class="form-control block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600" >
+						<input id="342378077" type="email" name="entry.342378077" required class="form-control block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600" >
 					</div>
 				</fieldset>
 			</div>
@@ -253,7 +253,7 @@
 			<input type="hidden" name="pageHistory" value="0">
 
 			<div class="mt-10">
-				<input type="submit" value="Get a consultation" class="block w-full rounded-md bg-indigo-600 px-3.5 py-2.5 text-center text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+				<input type="submit" value="Get a consultation" autocomplete="email" class="block w-full rounded-md bg-indigo-600 px-3.5 py-2.5 text-center text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
 			</div>
 
 		</form>
@@ -263,6 +263,7 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.form/4.2.2/jquery.form.min.js" integrity="sha256-2Pjr1OlpZMY6qesJM68t2v39t+lMLvxwpa8QlRjJroA=" crossorigin="anonymous"></script>
 	<script>
 		$('#bootstrapForm').submit(function (event) {
+			$('#bootstrapForm input[type="submit"]').prop('disabled', true);
 			event.preventDefault()
 			var extraData = {}
 			$('#bootstrapForm').ajaxSubmit({
@@ -274,7 +275,7 @@
 					alert('Form Submitted. Thanks.')
 					// You can also redirect the user to a custom thank-you page:
 					// window.location = 'http://www.mydomain.com/thankyoupage.html'
-					document.location.href="/";
+					window.location.reload();
 				}
 			})
 		})
