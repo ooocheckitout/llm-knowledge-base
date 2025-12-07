@@ -223,7 +223,7 @@
 	  </div>
 		<form action="https://docs.google.com/forms/d/e/1FAIpQLScus1rVdbBo7IqpW14vk1R6Eh9uSboqNFFevwpCEiLjzB_rew/formResponse"
 			target="_self"
-			id="bootstrapForm"
+			id="contactForm"
 			method="POST"
 			class="mx-auto mt-16 max-w-xl sm:mt-20">
 
@@ -270,11 +270,11 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.form/4.2.2/jquery.form.min.js" integrity="sha256-2Pjr1OlpZMY6qesJM68t2v39t+lMLvxwpa8QlRjJroA=" crossorigin="anonymous"></script>
 	<script>
-		$('#bootstrapForm').submit(function (event) {
-			$('#bootstrapForm input[type="submit"]').prop('disabled', true);
+		$('#contactForm').submit(function (event) {
+			$('#contactForm input[type="submit"]').prop('disabled', true);
 			event.preventDefault()
 			var extraData = {}
-			$('#bootstrapForm').ajaxSubmit({
+			$('#contactForm').ajaxSubmit({
 				data: extraData,
 				dataType: 'jsonp',  // This won't really work. It's just to use a GET instead of a POST to allow cookies from different domain.
 				error: function () {
