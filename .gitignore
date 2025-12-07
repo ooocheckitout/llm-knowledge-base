@@ -409,4 +409,3 @@ fabric.properties
 
 # Built Visual Studio Code Extensions
 *.vsix
-docker/www/output.css
