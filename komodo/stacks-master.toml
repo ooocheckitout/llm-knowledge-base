@@ -33,20 +33,6 @@ links = [
 ]
 
 [[stack]]
-name = "openwebui"
-deploy = true
-[stack.config]
-poll_for_updates = true
-server = "master"
-project_name = "llm-knowledge-base"
-linked_repo = "llm-knowledge-base"
-run_directory = "docker"
-file_paths = ["openwebui.yml"]
-links = [
-  "https://openwebui.bitspire.team/"
-]
-
-[[stack]]
 name = "postgres"
 deploy = true
 [stack.config]
